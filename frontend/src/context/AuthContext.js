@@ -14,34 +14,68 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
+    const [showSessionExpired, setShowSessionExpired] = useState(false);
+
+    axios.defaults.withCredentials = true;
+
+    // Helper to extract a safe error message
+    const getSafeErrorMessage = (error, defaultMessage) => {
+        const msg = error.response?.data?.message;
+        if (typeof msg === 'string' && msg.length < 100) return msg;
+        return defaultMessage;
+    };
+
+    const fetchCsrfToken = async () => {
+        try {
+            const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/csrf-token`);
+            axios.defaults.headers.common['x-csrf-token'] = res.data.csrfToken;
+        } catch (error) {
+            console.error('Failed to fetch CSRF token', error);
+        }
+    };
 
     // Load user data
     const loadUser = useCallback(async () => {
         try {
-            const res = await axios.get(`${process.env.REACT_APP_API_URL}/auth/me`);
+            await fetchCsrfToken();
+            const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/me`);
             setUser(res.data.data);
         } catch (error) {
             console.error('Error loading user:', error);
-            localStorage.removeItem('token');
-            setToken(null);
             setUser(null);
-            delete axios.defaults.headers.common['Authorization'];
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // Set axios defaults
     useEffect(() => {
-        if (token) {
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            loadUser();
-        } else {
-            setLoading(false);
-        }
-    }, [token, loadUser]);
+        loadUser();
+
+        const interceptor = axios.interceptors.response.use(
+            (response) => response,
+            async (error) => {
+                const originalRequest = error.config;
+                if (error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/login`) {
+                    originalRequest._retry = true;
+                    try {
+                        await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/refresh`);
+                        return axios(originalRequest);
+                    } catch (refreshError) {
+                        setUser(null);
+                        // Show modal if they were previously authenticated
+                        setShowSessionExpired(true);
+                        return Promise.reject(refreshError);
+                    }
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        return () => {
+            axios.interceptors.response.eject(interceptor);
+        };
+    }, [loadUser]);
 
     // Login
     const login = async (email, password) => {
@@ -51,17 +85,13 @@ export const AuthProvider = ({ children }) => {
                 password
             });
 
-            const { token, user } = res.data;
-
-            localStorage.setItem('token', token);
-            setToken(token);
+            const { user } = res.data;
             setUser(user);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
             toast.success('Login successful!');
             return { success: true, user };
         } catch (error) {
-            const message = error.response?.data?.message || 'Login failed';
+            const message = getSafeErrorMessage(error, 'Login failed. Please check your credentials.');
             toast.error(message);
             return { success: false, message };
         }
@@ -72,15 +102,12 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await axios.post(`${process.env.REACT_APP_API_URL}/auth/register`, userData);
             // Backend now returns token and user immediately (OTP disabled)
-            const { token, user } = res.data;
-            localStorage.setItem('token', token);
-            setToken(token);
+            const { user } = res.data;
             setUser(user);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             toast.success('Registration successful!');
             return { success: true, user };
         } catch (error) {
-            const message = error.response?.data?.message || 'Registration failed';
+            const message = getSafeErrorMessage(error, 'Registration failed. Please try again.');
             toast.error(message);
             return { success: false, message };
         }
@@ -90,26 +117,25 @@ export const AuthProvider = ({ children }) => {
     const verifyOtp = async (userId, otp) => {
         try {
             const res = await axios.post(`${process.env.REACT_APP_API_URL}/auth/verify-otp`, { userId, otp });
-            const { token, user } = res.data;
-            localStorage.setItem('token', token);
-            setToken(token);
+            const { user } = res.data;
             setUser(user);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             toast.success('OTP verified! Registration complete.');
             return { success: true, user };
         } catch (error) {
-            const message = error.response?.data?.message || 'OTP verification failed';
+            const message = getSafeErrorMessage(error, 'OTP verification failed');
             toast.error(message);
             return { success: false, message };
         }
     };
 
     // Logout
-    const logout = () => {
-        localStorage.removeItem('token');
-        setToken(null);
+    const logout = async () => {
+        try {
+            await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/logout`);
+        } catch (err) {
+            console.error('Logout error:', err);
+        }
         setUser(null);
-        delete axios.defaults.headers.common['Authorization'];
         toast.info('Logged out successfully');
     };
 
@@ -121,7 +147,7 @@ export const AuthProvider = ({ children }) => {
             toast.success('Profile updated successfully!');
             return { success: true };
         } catch (error) {
-            const message = error.response?.data?.message || 'Update failed';
+            const message = getSafeErrorMessage(error, 'Profile update failed. Please try again.');
             toast.error(message);
             return { success: false, message };
         }
@@ -137,7 +163,7 @@ export const AuthProvider = ({ children }) => {
             toast.success('Password updated successfully!');
             return { success: true };
         } catch (error) {
-            const message = error.response?.data?.message || 'Password update failed';
+            const message = getSafeErrorMessage(error, 'Password update failed. Please check your current password.');
             toast.error(message);
             return { success: false, message };
         }
@@ -150,7 +176,7 @@ export const AuthProvider = ({ children }) => {
             toast.success('Password reset email sent!');
             return { success: true };
         } catch (error) {
-            const message = error.response?.data?.message || 'Request failed';
+            const message = getSafeErrorMessage(error, 'Password reset request failed.');
             toast.error(message);
             return { success: false, message };
         }
@@ -158,7 +184,6 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         user,
-        token,
         loading,
         login,
         register,
@@ -167,7 +192,9 @@ export const AuthProvider = ({ children }) => {
         updateProfile,
         updatePassword,
         forgotPassword,
-        isAuthenticated: !!token,
+        showSessionExpired,
+        setShowSessionExpired,
+        isAuthenticated: !!user,
         isAdmin: user?.role === 'admin',
         isLibrarian: user?.role === 'librarian' || user?.role === 'admin',
         isStudent: user?.role === 'student'

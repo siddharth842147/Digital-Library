@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, Button, Table, Badge, Form, Modal, Spinner, InputGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Table, Badge, Form, Modal, Spinner, InputGroup, ProgressBar } from 'react-bootstrap';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiBook, FiImage, FiCamera } from 'react-icons/fi';
 import { getBooks, addBook, updateBook, deleteBook, getCategories } from '../../services/bookService';
 import { toast } from 'react-toastify';
@@ -18,6 +18,7 @@ const ManageBooks = () => {
     const [uploadingBulk, setUploadingBulk] = useState(false);
     const [bulkFile, setBulkFile] = useState(null);
     const [coverFile, setCoverFile] = useState(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     const handleDownloadReport = async (type) => {
         try {
@@ -42,8 +43,13 @@ const ManageBooks = () => {
         e.preventDefault();
         if (!bulkFile) return toast.warn('Please select a CSV file');
 
+        if (bulkFile.size > 5 * 1024 * 1024) {
+            return toast.error('File size exceeds 5MB limit');
+        }
+
         try {
             setUploadingBulk(true);
+            setUploadProgress(0);
             const data = new FormData();
             data.append('file', bulkFile);
 
@@ -51,6 +57,10 @@ const ManageBooks = () => {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    setUploadProgress(percentCompleted);
                 }
             });
             toast.success('Books uploaded successfully!');
@@ -60,6 +70,7 @@ const ManageBooks = () => {
             toast.error(error.response?.data?.message || 'Bulk upload failed');
         } finally {
             setUploadingBulk(false);
+            setUploadProgress(0);
         }
     };
 
@@ -256,7 +267,13 @@ const ManageBooks = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (coverFile && coverFile.size > 5 * 1024 * 1024) {
+            return toast.error('Cover image size exceeds 5MB limit');
+        }
+        
         try {
+            setUploadProgress(0);
             const data = new FormData();
             Object.keys(formData).forEach(key => {
                 data.append(key, formData[key]);
@@ -269,6 +286,10 @@ const ManageBooks = () => {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    setUploadProgress(percentCompleted);
                 }
             };
 
@@ -285,6 +306,8 @@ const ManageBooks = () => {
             fetchBooks();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Operation failed');
+        } finally {
+            setUploadProgress(0);
         }
     };
 
@@ -539,11 +562,16 @@ const ManageBooks = () => {
                                 </Col>
                             </Row>
                         </Modal.Body>
-                        <Modal.Footer className="border-0 px-4 pb-4">
-                            <Button variant="light" className="px-4" onClick={() => setShowModal(false)}>Cancel</Button>
-                            <Button variant="primary" type="submit" className="px-5 fw-bold">
-                                {isEditing ? 'Save Changes' : 'Add to Collection'}
-                            </Button>
+                        <Modal.Footer className="border-0 px-4 pb-4 flex-column align-items-stretch">
+                            {uploadProgress > 0 && (
+                                <ProgressBar animated now={uploadProgress} label={`${uploadProgress}%`} className="mb-3" />
+                            )}
+                            <div className="d-flex justify-content-end w-100 gap-2">
+                                <Button variant="light" className="px-4" onClick={() => setShowModal(false)}>Cancel</Button>
+                                <Button variant="primary" type="submit" className="px-5 fw-bold" disabled={uploadProgress > 0}>
+                                    {isEditing ? 'Save Changes' : 'Add to Collection'}
+                                </Button>
+                            </div>
                         </Modal.Footer>
                     </Form>
                 </Modal>
@@ -581,11 +609,15 @@ const ManageBooks = () => {
                                     onChange={(e) => setBulkFile(e.target.files[0])}
                                 />
                             </Form.Group>
+                            {uploadingBulk && (
+                                <ProgressBar animated now={uploadProgress} label={`${uploadProgress}%`} className="mb-3" />
+                            )}
                             <div className="d-flex gap-2">
                                 <Button variant="primary" type="submit" className="w-100 py-2 fw-bold" disabled={uploadingBulk}>
-                                    {uploadingBulk ? <Spinner size="sm" /> : 'Start Upload'}
+                                    {uploadingBulk ? <Spinner size="sm" className="me-2" /> : null}
+                                    {uploadingBulk ? 'Uploading...' : 'Start Upload'}
                                 </Button>
-                                <Button variant="light" className="w-100 py-2 fw-bold" onClick={() => setShowBulkModal(false)}>Cancel</Button>
+                                <Button variant="light" className="w-100 py-2 fw-bold" onClick={() => setShowBulkModal(false)} disabled={uploadingBulk}>Cancel</Button>
                             </div>
                         </Form>
                     </Modal.Body>

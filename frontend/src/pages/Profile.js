@@ -28,8 +28,8 @@ const Profile = () => {
     const handleProfilePicChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 1024 * 1024) { // 1MB limit
-                toast.error('Image size should be less than 1MB');
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                toast.error('Image size should be less than 5MB');
                 return;
             }
             const reader = new FileReader();
@@ -89,11 +89,16 @@ const Profile = () => {
                                             onClick={triggerFileSelect}
                                         >
                                             {formData.profilePic ? (
-                                                <img src={formData.profilePic} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <img src={formData.profilePic} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: loading ? 0.5 : 1 }} />
                                             ) : (
                                                 <span style={{ fontSize: '3.5rem', fontWeight: 700, color: 'var(--primary)' }}>
                                                     {user?.name.charAt(0)}
                                                 </span>
+                                            )}
+                                            {loading && (
+                                                <div className="position-absolute d-flex align-items-center justify-content-center" style={{ width: '100%', height: '100%', top: 0, left: 0 }}>
+                                                    <Spinner animation="border" variant="primary" />
+                                                </div>
                                             )}
                                         </div>
                                     </div>

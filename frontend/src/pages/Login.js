@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Card, Spinner } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiMail, FiLock } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
+    const [validated, setValidated] = useState(false);
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -22,6 +23,15 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const form = e.currentTarget;
+        
+        if (form.checkValidity() === false) {
+            e.stopPropagation();
+            setValidated(true);
+            return;
+        }
+
+        setValidated(true);
         setLoading(true);
 
         const result = await login(formData.email, formData.password);
@@ -46,7 +56,7 @@ const Login = () => {
                                 </p>
                             </div>
 
-                            <Form onSubmit={handleSubmit}>
+                            <Form noValidate validated={validated} onSubmit={handleSubmit} aria-label="Login Form">
                                 <Form.Group className="mb-3">
                                     <Form.Label className="form-label">
                                         <FiMail className="me-2" />
@@ -60,7 +70,13 @@ const Login = () => {
                                         placeholder="Enter your email"
                                         required
                                         className="form-control"
+                                        aria-label="Email Address"
+                                        aria-required="true"
+                                        autoComplete="email"
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        Please provide a valid email address.
+                                    </Form.Control.Feedback>
                                 </Form.Group>
 
                                 <Form.Group className="mb-3">
@@ -76,7 +92,13 @@ const Login = () => {
                                         placeholder="Enter your password"
                                         required
                                         className="form-control"
+                                        aria-label="Password"
+                                        aria-required="true"
+                                        autoComplete="current-password"
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        Please provide your password.
+                                    </Form.Control.Feedback>
                                 </Form.Group>
 
                                 <div className="d-flex justify-content-between align-items-center mb-3">
@@ -91,10 +113,16 @@ const Login = () => {
 
                                 <Button
                                     type="submit"
-                                    className="btn btn-primary w-100 mb-3"
+                                    className="btn btn-primary w-100 mb-3 d-flex justify-content-center align-items-center gap-2"
                                     disabled={loading}
+                                    aria-busy={loading}
                                 >
-                                    {loading ? 'Logging in...' : 'Login'}
+                                    {loading ? (
+                                        <>
+                                            <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                                            Logging in...
+                                        </>
+                                    ) : 'Login'}
                                 </Button>
 
                                 <div className="text-center">

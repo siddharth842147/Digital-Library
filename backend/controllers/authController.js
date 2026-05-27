@@ -25,7 +25,7 @@ exports.verifyOtp = async (req, res) => {
         user.otpExpire = undefined;
         await user.save();
         // Send token response (login user)
-        sendTokenResponse(user, 200, res, 'OTP verified, registration complete');
+        await sendTokenResponse(user, 200, res, 'OTP verified, registration complete');
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -116,7 +116,7 @@ exports.register = async (req, res) => {
         }
 
         // Immediately return token and user (no OTP required)
-        sendTokenResponse(user, 201, res, 'Registration successful');
+        await sendTokenResponse(user, 201, res, 'Registration successful');
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -180,7 +180,7 @@ exports.login = async (req, res) => {
             console.error('Failed to initiate login email:', err.message);
         }
 
-        sendTokenResponse(user, 200, res, 'Login successful');
+        await sendTokenResponse(user, 200, res, 'Login successful');
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -294,7 +294,7 @@ exports.resetPassword = async (req, res) => {
         user.resetPasswordExpire = undefined;
         await user.save();
 
-        sendTokenResponse(user, 200, res, 'Password reset successful');
+        await sendTokenResponse(user, 200, res, 'Password reset successful');
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -355,7 +355,7 @@ exports.updatePassword = async (req, res) => {
         user.password = req.body.newPassword;
         await user.save();
 
-        sendTokenResponse(user, 200, res, 'Password updated successfully');
+        await sendTokenResponse(user, 200, res, 'Password updated successfully');
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -365,17 +365,119 @@ exports.updatePassword = async (req, res) => {
 };
 
 // Helper function to get token from model, create cookie and send response
-const sendTokenResponse = (user, statusCode, res, message) => {
+const sendTokenResponse = async (user, statusCode, res, message) => {
     // Create token
     const token = user.getSignedJwtToken();
+    
+    const RefreshToken = require('../models/RefreshToken');
+    const refreshToken = await RefreshToken.createToken(user);
 
     // Remove password from output
     user.password = undefined;
 
-    res.status(statusCode).json({
+    const options = {
+        httpOnly: true,
+        secure: false, // Set to false for local HTTP development across ports
+        sameSite: 'lax',
+    };
+
+    res
+        .status(statusCode)
+        .cookie('accessToken', token, {
+            ...options,
+            expires: new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+        })
+        .cookie('refreshToken', refreshToken, {
+            ...options,
+            expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+        })
+        .json({
+            success: true,
+            message,
+            user
+        });
+};
+
+// @desc    Refresh Token
+// @route   POST /api/auth/refresh
+// @access  Public
+exports.refreshToken = async (req, res) => {
+    const { refreshToken: requestToken } = req.cookies;
+
+    if (!requestToken) {
+        return res.status(403).json({ success: false, message: 'Refresh token is required!' });
+    }
+
+    try {
+        const RefreshToken = require('../models/RefreshToken');
+        const refreshToken = await RefreshToken.findOne({ token: requestToken }).populate('user');
+
+        if (!refreshToken) {
+            return res.status(403).json({ success: false, message: 'Refresh token is not in database!' });
+        }
+
+        if (RefreshToken.verifyExpiration(refreshToken) || refreshToken.isRevoked) {
+            await RefreshToken.findByIdAndDelete(refreshToken._id);
+            return res.status(403).json({
+                success: false,
+                message: 'Refresh token was expired or revoked. Please make a new signin request',
+            });
+        }
+
+        const newAccessToken = refreshToken.user.getSignedJwtToken();
+        const options = {
+            httpOnly: true,
+            secure: false, // Set to false for local HTTP development
+            sameSite: 'lax',
+        };
+
+        return res.status(200)
+            .cookie('accessToken', newAccessToken, {
+                ...options,
+                expires: new Date(Date.now() + 15 * 60 * 1000) // 15 mins
+            })
+            .json({
+                success: true,
+                message: 'Token refreshed successfully'
+            });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Logout user / clear cookie
+// @route   POST /api/auth/logout
+// @access  Public
+exports.logout = async (req, res) => {
+    const { refreshToken: requestToken } = req.cookies;
+    
+    if (requestToken) {
+        try {
+            const RefreshToken = require('../models/RefreshToken');
+            await RefreshToken.findOneAndDelete({ token: requestToken });
+        } catch (e) {
+            console.error('Logout error:', e);
+        }
+    }
+
+    const options = {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'lax',
+    };
+
+    res.cookie('accessToken', 'none', {
+        ...options,
+        expires: new Date(Date.now() + 10 * 1000)
+    });
+
+    res.cookie('refreshToken', 'none', {
+        ...options,
+        expires: new Date(Date.now() + 10 * 1000)
+    });
+
+    res.status(200).json({
         success: true,
-        message,
-        token,
-        user
+        message: 'Logged out successfully'
     });
 };

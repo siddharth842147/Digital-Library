@@ -107,7 +107,7 @@ const MyBooks = () => {
                                     <Row className="g-0 h-100">
                                         <Col md={4}>
                                             <img
-                                                src={borrow.book?.coverImage?.startsWith('http') ? borrow.book.coverImage : (borrow.book?.coverImage ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${borrow.book.coverImage}` : 'https://via.placeholder.com/400x600?text=No+Cover')}
+                                                src={borrow.book?.coverImage?.startsWith('http') ? borrow.book.coverImage : (borrow.book?.coverImage ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${borrow.book.coverImage}` : 'https://placehold.co/400x600?text=No+Cover')}
                                                 alt={borrow.book?.title || 'Unknown Book'}
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: '250px' }}
                                             />

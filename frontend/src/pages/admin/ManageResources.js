@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, Table, Badge, Spinner, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Table, Badge, Spinner, Modal, ProgressBar } from 'react-bootstrap';
 import { FiTrash2, FiPlus } from 'react-icons/fi';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -9,6 +9,7 @@ const ManageResources = () => {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [formData, setFormData] = useState({
         title: '',
         type: 'Question Paper',
@@ -64,8 +65,14 @@ const ManageResources = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (formData.file && formData.file.size > 5 * 1024 * 1024) {
+            return toast.error('File size exceeds 5MB limit');
+        }
+        
         try {
             setUploading(true);
+            setUploadProgress(0);
             const data = new FormData();
             Object.keys(formData).forEach(key => {
                 if (key === 'file') {
@@ -79,6 +86,10 @@ const ManageResources = () => {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    setUploadProgress(percentCompleted);
                 }
             };
 
@@ -90,6 +101,7 @@ const ManageResources = () => {
             toast.error(error.response?.data?.message || 'Upload failed');
         } finally {
             setUploading(false);
+            setUploadProgress(0);
         }
     };
 
@@ -260,11 +272,21 @@ const ManageResources = () => {
                                 onChange={handleFileChange}
                             />
                         </Form.Group>
-                        <div className="text-end mt-4">
-                            <Button variant="secondary" className="me-2" onClick={() => setShowModal(false)}>Cancel</Button>
-                            <Button variant="primary" type="submit" disabled={uploading}>
-                                {uploading ? <Spinner size="sm" /> : 'Upload Resource'}
-                            </Button>
+                        <div className="text-end mt-4 d-flex flex-column align-items-stretch">
+                            {uploading && uploadProgress > 0 && (
+                                <ProgressBar animated now={uploadProgress} label={`${uploadProgress}%`} className="mb-3" />
+                            )}
+                            <div className="d-flex justify-content-end w-100 gap-2">
+                                <Button variant="secondary" className="me-2" onClick={() => setShowModal(false)} disabled={uploading}>Cancel</Button>
+                                <Button variant="primary" type="submit" disabled={uploading}>
+                                    {uploading ? (
+                                        <>
+                                            <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                                            Uploading...
+                                        </>
+                                    ) : 'Upload Resource'}
+                                </Button>
+                            </div>
                         </div>
                     </Form>
                 </Modal.Body>

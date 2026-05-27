@@ -7,13 +7,25 @@ const {
     resetPassword,
     updateDetails,
     updatePassword,
-    verifyOtp
+    verifyOtp,
+    refreshToken,
+    logout
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { body } = require('express-validator');
 const { validate } = require('../middleware/validation');
 
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
+
+// Rate limiting for auth routes
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limit each IP to 5 requests per `window` (here, per 15 minutes)
+    message: 'Too many requests from this IP, please try again after 15 minutes',
+    standardHeaders: true, 
+    legacyHeaders: false, 
+});
 
 // Validation rules
 const registerValidation = [
@@ -34,11 +46,13 @@ const loginValidation = [
 ];
 
 // Public routes
-router.post('/register', registerValidation, validate, register);
-router.post('/verify-otp', verifyOtp);
-router.post('/login', loginValidation, validate, login);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password/:resettoken', resetPassword);
+router.post('/register', authLimiter, registerValidation, validate, register);
+router.post('/verify-otp', authLimiter, verifyOtp);
+router.post('/login', authLimiter, loginValidation, validate, login);
+router.post('/forgot-password', authLimiter, forgotPassword);
+router.post('/reset-password/:resettoken', authLimiter, resetPassword);
+router.post('/refresh', refreshToken);
+router.post('/logout', logout);
 
 // Protected routes
 router.get('/me', protect, getMe);

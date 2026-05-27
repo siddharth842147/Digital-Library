@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,29 +12,31 @@ import { ThemeProvider } from './context/ThemeContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Loading from './components/Loading';
+import Chatbot from './components/Chatbot';
+import SessionExpiryModal from './components/SessionExpiryModal';
 
-// Pages
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Books from './pages/Books';
-import BookDetails from './pages/BookDetails';
-import MyBooks from './pages/MyBooks';
-import Payment from './pages/Payment';
-import PaymentHistory from './pages/PaymentHistory';
-import Profile from './pages/Profile';
-import Policy from './pages/Policy';
-import AcademicResources from './pages/AcademicResources';
+// Pages (Lazy Loaded)
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Books = lazy(() => import('./pages/Books'));
+const BookDetails = lazy(() => import('./pages/BookDetails'));
+const MyBooks = lazy(() => import('./pages/MyBooks'));
+const Payment = lazy(() => import('./pages/Payment'));
+const PaymentHistory = lazy(() => import('./pages/PaymentHistory'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Policy = lazy(() => import('./pages/Policy'));
+const AcademicResources = lazy(() => import('./pages/AcademicResources'));
 
-// Admin Pages
-import AdminDashboard from './pages/admin/AdminDashboard';
-import ManageBooks from './pages/admin/ManageBooks';
-import ManageUsers from './pages/admin/ManageUsers';
-import BorrowManagement from './pages/admin/BorrowManagement';
-import VerifyPayments from './pages/admin/VerifyPayments';
-import ManageHolidays from './pages/admin/ManageHolidays';
-import ManageResources from './pages/admin/ManageResources';
+// Admin Pages (Lazy Loaded)
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const ManageBooks = lazy(() => import('./pages/admin/ManageBooks'));
+const ManageUsers = lazy(() => import('./pages/admin/ManageUsers'));
+const BorrowManagement = lazy(() => import('./pages/admin/BorrowManagement'));
+const VerifyPayments = lazy(() => import('./pages/admin/VerifyPayments'));
+const ManageHolidays = lazy(() => import('./pages/admin/ManageHolidays'));
+const ManageResources = lazy(() => import('./pages/admin/ManageResources'));
 
 // Protected Route Component
 const ProtectedRoute = ({ children, roles = [] }) => {
@@ -71,12 +73,15 @@ const PublicRoute = ({ children }) => {
 };
 
 function AppContent() {
+    const { showSessionExpired, setShowSessionExpired } = useAuth();
+
     return (
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <div className="app">
                 <Navbar />
                 <main style={{ minHeight: '80vh' }}>
-                    <Routes>
+                    <Suspense fallback={<Loading />}>
+                        <Routes>
                         {/* Public Routes */}
                         <Route path="/" element={<Home />} />
                         <Route path="/books" element={<Books />} />
@@ -204,8 +209,13 @@ function AppContent() {
                         />
                         <Route path="*" element={<Navigate to="/" />} />
                     </Routes>
+                    </Suspense>
                 </main>
                 <Footer />
+                <SessionExpiryModal 
+                    show={showSessionExpired} 
+                    onHide={() => setShowSessionExpired(false)} 
+                />
             </div>
         </Router>
     );
@@ -216,6 +226,7 @@ function App() {
         <ThemeProvider>
             <AuthProvider>
                 <AppContent />
+                <Chatbot />
                 <ToastContainer
                     position="top-right"
                     autoClose={3000}

@@ -139,4 +139,8 @@ userSchema.methods.getResetPasswordToken = function () {
     return resetToken;
 };
 
+// Indexes for faster lookups
+userSchema.index({ role: 1 });
+userSchema.index({ usn: 1 }, { sparse: true });
+
 module.exports = mongoose.model('User', userSchema);

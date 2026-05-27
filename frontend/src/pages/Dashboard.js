@@ -161,7 +161,7 @@ const Dashboard = () => {
                                                         <td className="px-4 py-3">
                                                             <div className="d-flex align-items-center gap-3">
                                                                 <img
-                                                                    src={borrow.book?.coverImage || 'https://via.placeholder.com/40x60?text=No+Cover'}
+                                                                    src={borrow.book?.coverImage || 'https://placehold.co/40x60?text=No+Cover'}
                                                                     alt=""
                                                                     style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '6px' }}
                                                                 />

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Card, Spinner } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiUser, FiMail, FiLock, FiPhone, FiMapPin } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
+    const [validated, setValidated] = useState(false);
+    const [passwordError, setPasswordError] = useState('');
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -26,10 +28,29 @@ const Register = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (formData.password !== formData.confirmPassword) {
-            alert('Passwords do not match');
+        const form = e.currentTarget;
+        
+        setPasswordError('');
+        
+        if (form.checkValidity() === false) {
+            e.stopPropagation();
+            setValidated(true);
             return;
         }
+
+        if (formData.password !== formData.confirmPassword) {
+            setPasswordError('Passwords do not match');
+            setValidated(true);
+            return;
+        }
+        
+        if (formData.password.length < 6) {
+            setPasswordError('Password must be at least 6 characters');
+            setValidated(true);
+            return;
+        }
+
+        setValidated(true);
         setLoading(true);
         const { confirmPassword, ...userData } = formData;
         const result = await register(userData);
@@ -51,7 +72,7 @@ const Register = () => {
                                     Join our library community today
                                 </p>
                             </div>
-                            <Form onSubmit={handleSubmit}>
+                            <Form noValidate validated={validated} onSubmit={handleSubmit} aria-label="Registration Form">
                                 {/* Registration form fields */}
                                 <Row>
                                     <Col md={6}>
@@ -70,6 +91,9 @@ const Register = () => {
                                                 autoComplete="name"
                                                 className="form-control"
                                             />
+                                            <Form.Control.Feedback type="invalid">
+                                                Please provide your full name.
+                                            </Form.Control.Feedback>
                                         </Form.Group>
                                     </Col>
                                     <Col md={6}>
@@ -88,6 +112,9 @@ const Register = () => {
                                                 autoComplete="email"
                                                 className="form-control"
                                             />
+                                            <Form.Control.Feedback type="invalid">
+                                                Please provide a valid email address.
+                                            </Form.Control.Feedback>
                                         </Form.Group>
                                     </Col>
                                 </Row>
@@ -108,7 +135,11 @@ const Register = () => {
                                                 minLength={6}
                                                 autoComplete="new-password"
                                                 className="form-control"
+                                                isInvalid={!!passwordError}
                                             />
+                                            <Form.Control.Feedback type="invalid">
+                                                {passwordError || 'Password must be at least 6 characters.'}
+                                            </Form.Control.Feedback>
                                         </Form.Group>
                                     </Col>
                                     <Col md={6}>
@@ -126,7 +157,11 @@ const Register = () => {
                                                 required
                                                 autoComplete="new-password"
                                                 className="form-control"
+                                                isInvalid={!!passwordError && formData.password !== formData.confirmPassword}
                                             />
+                                            <Form.Control.Feedback type="invalid">
+                                                {formData.password !== formData.confirmPassword ? 'Passwords do not match.' : 'Please confirm your password.'}
+                                            </Form.Control.Feedback>
                                         </Form.Group>
                                     </Col>
                                 </Row>
@@ -146,6 +181,9 @@ const Register = () => {
                                         inputMode="tel"
                                         className="form-control"
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        Please provide a valid 10-digit phone number.
+                                    </Form.Control.Feedback>
                                 </Form.Group>
                                 <Form.Group className="mb-3">
                                     <Form.Label className="form-label">
@@ -171,10 +209,16 @@ const Register = () => {
                                 </Form.Group>
                                 <Button
                                     type="submit"
-                                    className="btn btn-primary w-100 mb-3"
+                                    className="btn btn-primary w-100 mb-3 d-flex justify-content-center align-items-center gap-2"
                                     disabled={loading}
+                                    aria-busy={loading}
                                 >
-                                    {loading ? 'Creating Account...' : 'Create Account'}
+                                    {loading ? (
+                                        <>
+                                            <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                                            Creating Account...
+                                        </>
+                                    ) : 'Create Account'}
                                 </Button>
                                 <div className="text-center">
                                     <p style={{ color: 'var(--text-secondary)' }}>

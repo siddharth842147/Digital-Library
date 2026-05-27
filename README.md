@@ -289,13 +289,22 @@ git push heroku main
 ## 🔒 Security Features
 
 - Password hashing with bcrypt
-- JWT token authentication
+- JWT token authentication (HttpOnly Secure Cookies)
+- CSRF Protection (csrf-csrf)
+- File Upload Validation (5MB limit & ClamAV virus scanning)
 - Protected routes
-- Input validation
-- XSS protection
+- Input validation & MongoDB Sanitization
+- XSS protection (xss-clean)
 - CORS configuration
-- Rate limiting
+- Rate limiting (express-rate-limit)
 - SQL injection prevention
+- Helmet CSP & HSTS Headers
+
+## 🚀 CI/CD & Testing
+
+- **GitHub Actions Pipeline**: Automated workflow configured in `.github/workflows/main.yml` that installs dependencies and runs tests on push/PR to the main branch.
+- **Jest & Supertest**: Backend includes a full testing suite for authentication and critical endpoints. Run `npm test` in the backend directory.
+- **Service Worker**: Configured for basic offline asset caching and fallback rendering.
 
 ## 📧 Email Notifications
 
