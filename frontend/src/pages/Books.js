@@ -139,8 +139,8 @@ const Books = () => {
             <Container>
                 <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-5">
                     <div className="text-center text-md-start mb-3 mb-md-0">
-                        <h1 style={{ fontWeight: 700 }}>Browse Our Collection</h1>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginBottom: 0 }}>
+                        <h1 className="books-title-anim" style={{ fontWeight: 700 }}>Browse Our Collection</h1>
+                        <p className="books-subtitle-anim" style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginBottom: 0 }}>
                             Discover your next favorite book from our vast collection
                         </p>
                     </div>
@@ -157,7 +157,7 @@ const Books = () => {
                 </div>
 
                 {/* Search and Filter */}
-                <Row className="mb-4">
+                <Row className="mb-4 books-search-anim">
                     <Col md={8}>
                         <InputGroup>
                             <InputGroup.Text>
@@ -189,10 +189,10 @@ const Books = () => {
                 {/* Books Grid */}
                 {loading ? (
                     <div className="text-center py-5">
-                        <div className="spinner"></div>
+                        <div className="spinner placeholder-flip"></div>
                     </div>
                 ) : books.length === 0 ? (
-                    <div className="text-center py-5">
+                    <div className="text-center py-5 placeholder-flip">
                         <FiBook size={60} style={{ color: 'var(--gray)' }} />
                         <h4 className="mt-3">No books found</h4>
                         <p style={{ color: 'var(--text-secondary)' }}>
@@ -202,10 +202,10 @@ const Books = () => {
                 ) : (
                     <>
                         <Row className="g-4">
-                            {books.map((book) => (
+                            {books.map((book, index) => (
                                 <Col key={book._id} sm={6} md={4} lg={3}>
-                                    <Card className="book-card h-100">
-                                        <div style={{ position: 'relative' }}>
+                                    <Card className="book-card h-100 book-card-anim" style={{ animationDelay: `${0.1 * (index % 12)}s` }}>
+                                        <div style={{ position: 'relative', overflow: 'hidden' }}>
                                             <Card.Img
                                                 variant="top"
                                                 src={book.coverImage?.startsWith('http') ? book.coverImage : `${process.env.REACT_APP_API_URL.replace('/api', '')}${book.coverImage}`}
@@ -214,10 +214,12 @@ const Books = () => {
                                             />
                                             <Badge
                                                 bg={book.status === 'available' ? 'success' : 'danger'}
+                                                className="book-tag-anim"
                                                 style={{
                                                     position: 'absolute',
                                                     top: '10px',
-                                                    right: '10px'
+                                                    right: '10px',
+                                                    animationDelay: `${0.2 + 0.1 * (index % 12)}s`
                                                 }}
                                             >
                                                 {book.status}
@@ -235,7 +237,7 @@ const Books = () => {
                                                 <small style={{ color: 'var(--text-secondary)' }}>
                                                     {book.availableCopies}/{book.totalCopies} available
                                                 </small>
-                                                <Link to={`/books/${book._id}`} className="btn btn-primary btn-sm">
+                                                <Link to={`/books/${book._id}`} className="btn btn-primary btn-sm book-btn-ripple">
                                                     View Details
                                                 </Link>
                                             </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Badge, Button, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Badge, Button, Spinner, Modal } from 'react-bootstrap';
 import { FiBook, FiCalendar, FiRotateCcw, FiAlertCircle, FiInfo } from 'react-icons/fi';
 import axios from 'axios';
 import { getMyBorrowedBooks, returnBook } from '../services/borrowService';
@@ -10,6 +10,13 @@ const MyBooks = () => {
     const [borrows, setBorrows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [returningId, setReturningId] = useState(null);
+    const [confirmModal, setConfirmModal] = useState({
+        show: false,
+        title: '',
+        message: [],
+        fineAmount: 0,
+        onConfirm: null
+    });
 
     const fetchMyBooks = async () => {
         try {
@@ -17,7 +24,7 @@ const MyBooks = () => {
             const response = await getMyBorrowedBooks();
             setBorrows(response.data);
         } catch (error) {
-            toast.error('Error fetching your borrowed books');
+            toast.error('Error fetching your borrowed books', { className: 'alert-slide-top-red', position: 'top-center' });
         } finally {
             setLoading(false);
         }
@@ -27,39 +34,54 @@ const MyBooks = () => {
         fetchMyBooks();
     }, []);
 
-    const handleRenew = async (id) => {
-        if (!window.confirm('Renew this book for 7 more days? (Limit: 2 renewals)')) return;
+    const handleRenew = (id) => {
+        setConfirmModal({
+            show: true,
+            title: 'Confirm Renewal',
+            message: ['Renew this book for 7 more days?', '(Limit: 2 renewals)'],
+            fineAmount: 0,
+            onConfirm: () => executeRenew(id)
+        });
+    };
 
+    const executeRenew = async (id) => {
+        setConfirmModal(prev => ({ ...prev, show: false }));
         try {
             const response = await axios.put(`${process.env.REACT_APP_API_URL}/borrow/renew/${id}`, {}, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
-            toast.success(response.data.message || 'Book renewed successfully!');
+            toast.success(response.data.message || 'Book renewed successfully!', { className: 'alert-slide-bottom-green', position: 'bottom-center' });
             fetchMyBooks();
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Renewal failed');
+            toast.error(error.response?.data?.message || 'Renewal failed', { className: 'alert-slide-top-red', position: 'top-center' });
         }
     };
 
-    const handleReturn = async (id, accruedFine) => {
-        const confirmMessage = accruedFine > 0 
-            ? `Are you sure you want to return this book?\nYou have an accrued fine of ₹${accruedFine} for late return.` 
-            : 'Are you sure you want to return this book?';
+    const handleReturn = (id, accruedFine) => {
+        const message = ['Are you sure you want to return this book?'];
+        setConfirmModal({
+            show: true,
+            title: 'Confirm Return',
+            message,
+            fineAmount: accruedFine,
+            onConfirm: () => executeReturn(id, accruedFine)
+        });
+    };
 
-        if (!window.confirm(confirmMessage)) return;
-
+    const executeReturn = async (id, accruedFine) => {
+        setConfirmModal(prev => ({ ...prev, show: false }));
         try {
             setReturningId(id);
             const response = await returnBook(id);
             if (response.coinsEarned && response.coinsEarned > 0) {
-                toast.success(`Book returned successfully! You earned ${response.coinsEarned} JViT Coins 🎉!`);
+                toast.success(`Book returned successfully! You earned ${response.coinsEarned} JViT Coins 🎉!`, { className: 'alert-slide-bottom-green', position: 'bottom-center' });
             } else {
-                toast.success(response.message || 'Book returned successfully!');
+                toast.success(response.message || 'Book returned successfully!', { className: 'alert-slide-bottom-green', position: 'bottom-center' });
             }
             fetchMyBooks(); // Refresh list
         } catch (error) {
             const message = error.response?.data?.message || 'Failed to return book';
-            toast.error(message);
+            toast.error(message, { className: 'alert-slide-top-red', position: 'top-center' });
         } finally {
             setReturningId(null);
         }
@@ -101,9 +123,9 @@ const MyBooks = () => {
                     </Card>
                 ) : (
                     <Row className="g-4">
-                        {borrows.map((borrow) => (
+                        {borrows.map((borrow, index) => (
                             <Col key={borrow._id} xl={6}>
-                                <Card className="border-0 shadow-sm h-100" style={{ borderRadius: 'var(--radius-xl)', overflow: 'hidden' }}>
+                                <Card className="border-0 shadow-sm h-100 mybook-card-anim" style={{ borderRadius: 'var(--radius-xl)', overflow: 'hidden', animationDelay: `${0.1 * index}s` }}>
                                     <Row className="g-0 h-100">
                                         <Col md={4}>
                                             <img
@@ -119,11 +141,11 @@ const MyBooks = () => {
                                                         <Badge bg="info">{borrow.book?.category || 'Unknown'}</Badge>
                                                         <div className="d-flex gap-2">
                                                             {borrow.status === 'overdue' && (
-                                                                <Badge bg="danger" className="d-flex align-items-center gap-1">
+                                                                <Badge bg="danger" className="d-flex align-items-center gap-1 badge-glow-red">
                                                                     <FiAlertCircle /> OVERDUE
                                                                 </Badge>
                                                             )}
-                                                            {borrow.status === 'pending' && <Badge bg="warning">APPROVAL PENDING</Badge>}
+                                                            {borrow.status === 'pending' && <Badge bg="warning" className="badge-glow-yellow">APPROVAL PENDING</Badge>}
                                                             {borrow.status === 'return_pending' && <Badge bg="secondary">RETURN PENDING VERIFICATION</Badge>}
                                                         </div>
                                                     </div>
@@ -137,7 +159,7 @@ const MyBooks = () => {
                                                         <div className={`d-flex align-items-center gap-2 ${borrow.status === 'overdue' ? 'text-danger fw-bold' : 'text-primary'}`}>
                                                             <FiCalendar /> <small>Due Date: {new Date(borrow.dueDate).toLocaleDateString()}</small>
                                                             {borrow.accruedFine > 0 && (
-                                                                <Badge bg="danger" className="ms-2">₹{borrow.accruedFine} Fine</Badge>
+                                                                <Badge bg="danger" className="ms-2 badge-glow-red">₹{borrow.accruedFine} Fine</Badge>
                                                             )}
                                                         </div>
                                                         <div className="mt-2 small text-muted">
@@ -149,7 +171,7 @@ const MyBooks = () => {
                                                 <div className="d-flex flex-wrap gap-2 mt-auto">
                                                     <Button
                                                         variant={borrow.status === 'return_pending' ? 'outline-secondary' : 'primary'}
-                                                        className="flex-grow-1 d-flex align-items-center justify-content-center gap-2"
+                                                        className="flex-grow-1 d-flex align-items-center justify-content-center gap-2 mybook-btn-ripple"
                                                         onClick={() => handleReturn(borrow._id, borrow.accruedFine)}
                                                         disabled={returningId === borrow._id || borrow.status === 'pending' || borrow.status === 'return_pending'}
                                                     >
@@ -159,13 +181,13 @@ const MyBooks = () => {
                                                     {borrow.status === 'borrowed' && borrow.renewalCount < 2 && (
                                                         <Button
                                                             variant="outline-primary"
-                                                            className="flex-grow-1"
+                                                            className="flex-grow-1 mybook-btn-ripple"
                                                             onClick={() => handleRenew(borrow._id)}
                                                         >
                                                             Renew (7 days)
                                                         </Button>
                                                     )}
-                                                    <Link to={borrow.book ? `/books/${borrow.book._id}` : '#'} className="btn btn-outline-secondary" disabled={!borrow.book}>
+                                                    <Link to={borrow.book ? `/books/${borrow.book._id}` : '#'} className="btn btn-outline-secondary mybook-btn-ripple" disabled={!borrow.book}>
                                                         <FiInfo />
                                                     </Link>
                                                 </div>
@@ -193,6 +215,42 @@ const MyBooks = () => {
                     </div>
                 </Card>
             </Container>
+
+            {/* Custom Confirm Modal */}
+            <Modal 
+                show={confirmModal.show} 
+                onHide={() => setConfirmModal(prev => ({ ...prev, show: false }))} 
+                centered
+                backdropClassName="confirm-modal-backdrop"
+                dialogClassName="confirm-modal-bounce"
+            >
+                <Modal.Header closeButton className="confirm-title-shimmer border-0 px-4 py-3">
+                    <Modal.Title className="fw-bold fs-4 d-flex align-items-center gap-2">
+                        <FiAlertCircle /> {confirmModal.title}
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="px-4 py-4 text-center">
+                    {confirmModal.message.map((msg, idx) => (
+                        <p key={idx} className="mb-2 fs-5 confirm-text-fade" style={{ animationDelay: `${0.1 * idx}s` }}>
+                            {msg}
+                        </p>
+                    ))}
+                    {confirmModal.fineAmount > 0 && (
+                        <div className="mt-4 confirm-text-fade" style={{ animationDelay: '0.3s' }}>
+                            <p className="mb-1 text-muted">Accrued Fine for Late Return:</p>
+                            <h2 className="text-glow-red m-0">₹{confirmModal.fineAmount}</h2>
+                        </div>
+                    )}
+                </Modal.Body>
+                <Modal.Footer className="border-0 px-4 pb-4 justify-content-center gap-3">
+                    <Button variant="light" className="confirm-btn-3d flex-grow-1" onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}>
+                        Cancel
+                    </Button>
+                    <Button variant="primary" className="confirm-btn-3d flex-grow-1 shadow-sm" onClick={confirmModal.onConfirm}>
+                        Confirm
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </div>
     );
 };

@@ -6,6 +6,33 @@ import { useAuth } from '../context/AuthContext';
 import { getMyBorrowedBooks } from '../services/borrowService';
 import { Link, Navigate } from 'react-router-dom';
 
+const AnimatedNumber = ({ value }) => {
+    const [count, setCount] = useState(0);
+    useEffect(() => {
+        let start = 0;
+        const duration = 1000;
+        const end = parseInt(value, 10) || 0;
+        if (start === end) {
+            setCount(end);
+            return;
+        }
+        let startTime = null;
+        const step = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            const easeProgress = 1 - Math.pow(1 - progress, 3);
+            setCount(Math.floor(easeProgress * (end - start) + start));
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                setCount(end);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }, [value]);
+    return <>{count}</>;
+};
+
 const Dashboard = () => {
     const { user } = useAuth();
     const [stats, setStats] = useState({
@@ -70,8 +97,9 @@ const Dashboard = () => {
     }
 
     return (
-        <div style={{ padding: '3rem 0', background: 'var(--bg-secondary)', minHeight: 'calc(100vh - 70px)' }}>
-            <Container>
+        <div style={{ padding: '3rem 0', background: 'var(--bg-secondary)', minHeight: 'calc(100vh - 70px)', position: 'relative' }}>
+            <div className="dash-bg-particles"></div>
+            <Container style={{ position: 'relative', zIndex: 1 }}>
                 <div className="mb-5">
                     <h1 style={{ fontWeight: 800 }}>Welcome back, {user?.name.split(' ')[0]}! 👋</h1>
                     <p className="text-muted">Here's an overview of your library activity.</p>
@@ -80,52 +108,52 @@ const Dashboard = () => {
                 {/* Stats Cards */}
                 <Row className="g-4 mb-5">
                     <Col lg={3} md={6}>
-                        <Card className="border-0 shadow-sm h-100" style={{ borderRadius: 'var(--radius-xl)' }}>
+                        <Card className="border-0 shadow-sm h-100 dash-summary-card" style={{ borderRadius: 'var(--radius-xl)', animationDelay: '0.1s' }}>
                             <Card.Body className="p-4 d-flex align-items-center gap-4">
                                 <div style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', padding: '1.25rem', borderRadius: '20px' }}>
                                     <FiBook size={32} />
                                 </div>
                                 <div>
-                                    <h2 className="mb-0 fw-bold">{stats.totalBorrowed}</h2>
+                                    <h2 className="mb-0 fw-bold"><AnimatedNumber value={stats.totalBorrowed} /></h2>
                                     <p className="text-muted mb-0">Books Borrowed</p>
                                 </div>
                             </Card.Body>
                         </Card>
                     </Col>
                     <Col lg={3} md={6}>
-                        <Card className="border-0 shadow-sm h-100" style={{ borderRadius: 'var(--radius-xl)' }}>
+                        <Card className="border-0 shadow-sm h-100 dash-summary-card" style={{ borderRadius: 'var(--radius-xl)', animationDelay: '0.2s' }}>
                             <Card.Body className="p-4 d-flex align-items-center gap-4">
                                 <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', padding: '1.25rem', borderRadius: '20px' }}>
                                     <FiClock size={32} />
                                 </div>
                                 <div>
-                                    <h2 className="mb-0 fw-bold">{stats.overdue}</h2>
+                                    <h2 className="mb-0 fw-bold"><AnimatedNumber value={stats.overdue} /></h2>
                                     <p className="text-muted mb-0">Overdue Books</p>
                                 </div>
                             </Card.Body>
                         </Card>
                     </Col>
                     <Col lg={3} md={6}>
-                        <Card className="border-0 shadow-sm h-100" style={{ borderRadius: 'var(--radius-xl)' }}>
+                        <Card className="border-0 shadow-sm h-100 dash-summary-card" style={{ borderRadius: 'var(--radius-xl)', animationDelay: '0.3s' }}>
                             <Card.Body className="p-4 d-flex align-items-center gap-4">
                                 <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', padding: '1.25rem', borderRadius: '20px' }}>
                                     <FiDollarSign size={32} />
                                 </div>
                                 <div>
-                                    <h2 className="mb-0 fw-bold">₹{stats.pendingFines}</h2>
+                                    <h2 className="mb-0 fw-bold">₹<AnimatedNumber value={stats.pendingFines} /></h2>
                                     <p className="text-muted mb-0">Pending Fines</p>
                                 </div>
                             </Card.Body>
                         </Card>
                     </Col>
                     <Col lg={3} md={6}>
-                        <Card className="border-0 shadow-sm h-100" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white', borderRadius: 'var(--radius-xl)' }}>
+                        <Card className="border-0 shadow-sm h-100 dash-summary-card" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white', borderRadius: 'var(--radius-xl)', animationDelay: '0.4s' }}>
                             <Card.Body className="p-4 d-flex align-items-center gap-4">
                                 <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '1.25rem', borderRadius: '20px' }}>
                                     <span style={{ fontSize: '32px', lineHeight: 1 }}>🪙</span>
                                 </div>
                                 <div>
-                                    <h2 className="mb-0 fw-bold">{stats.coins}</h2>
+                                    <h2 className="mb-0 fw-bold"><AnimatedNumber value={stats.coins} /></h2>
                                     <p className="text-white-50 fw-bold mb-0">JViT Coins</p>
                                 </div>
                             </Card.Body>
@@ -156,8 +184,8 @@ const Dashboard = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {stats.recentBooks.map((borrow) => (
-                                                    <tr key={borrow._id}>
+                                                {stats.recentBooks.map((borrow, index) => (
+                                                    <tr key={borrow._id} className="dash-book-entry" style={{ animationDelay: `${0.6 + index * 0.15}s` }}>
                                                         <td className="px-4 py-3">
                                                             <div className="d-flex align-items-center gap-3">
                                                                 <img
@@ -174,7 +202,7 @@ const Dashboard = () => {
                                                         <td>{new Date(borrow.borrowDate).toLocaleDateString()}</td>
                                                         <td>{new Date(borrow.dueDate).toLocaleDateString()}</td>
                                                         <td className="text-end px-4">
-                                                            <Badge bg={borrow.status === 'overdue' ? 'danger' : 'success'} pill>
+                                                            <Badge bg={borrow.status === 'overdue' ? 'danger' : 'success'} pill className="dash-status-glow">
                                                                 {borrow.status}
                                                             </Badge>
                                                         </td>
@@ -195,7 +223,7 @@ const Dashboard = () => {
 
                     {/* Quick Profile */}
                     <Col lg={4}>
-                        <Card className="border-0 shadow-sm h-100" style={{ borderRadius: 'var(--radius-xl)' }}>
+                        <Card className="border-0 shadow-sm h-100 dash-profile-card" style={{ borderRadius: 'var(--radius-xl)', animationDelay: '0.8s' }}>
                             <Card.Body className="p-4 text-center">
                                 <div className="mb-4 d-inline-block p-1 bg-light rounded-circle shadow-sm">
                                     <div
@@ -222,7 +250,7 @@ const Dashboard = () => {
                                     <Card.Body className="p-3 text-start">
                                         <div className="d-flex justify-content-between mb-2">
                                             <small className="text-muted">Membership</small>
-                                            <Badge bg="success" pill>Active</Badge>
+                                            <Badge bg="success" pill className="shimmer-badge">Active</Badge>
                                         </div>
                                         <div className="d-flex justify-content-between">
                                             <small className="text-muted">Member Since</small>
@@ -231,11 +259,11 @@ const Dashboard = () => {
                                     </Card.Body>
                                 </Card>
 
-                                <Link to="/profile" className="btn btn-primary w-100 mb-2">
+                                <Link to="/profile" className="btn btn-primary w-100 mb-2 dash-btn-ripple">
                                     <FiUser className="me-2" /> Edit Profile
                                 </Link>
                                 {stats.pendingFines > 0 && (
-                                    <Link to="/payment" className="btn btn-danger w-100">
+                                    <Link to="/payment" className="btn btn-danger w-100 dash-btn-ripple">
                                         <FiDollarSign className="me-2" /> Pay Fines (₹{stats.pendingFines})
                                     </Link>
                                 )}

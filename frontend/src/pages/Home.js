@@ -39,34 +39,26 @@ const Home = () => {
                     overflow: 'hidden'
                 }}
             >
-                <div className="hero-pattern" style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    opacity: 0.05,
-                    backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
-                    backgroundSize: '32px 32px'
-                }}></div>
+                <div className="hero-pattern particle-bg"></div>
                 <Container className="position-relative">
                     <Row className="align-items-center">
                         <Col lg={7} className="fade-in">
                             <Badge bg="accent" className="mb-4 px-3 py-2 text-dark" style={{ fontSize: '0.8rem', letterSpacing: '2px', fontWeight: 800 }}>
                                 WELCOME TO THE FUTURE OF KNOWLEDGE
                             </Badge>
-                            <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, marginBottom: '1.5rem', lineHeight: 1.1 }}>
-                                Jnana Vikas <br />
-                                <span style={{ color: 'var(--accent)' }}>Digital Library</span>
+                            <h1 className="animated-heading-container" style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, marginBottom: '1.5rem', lineHeight: 1.1, position: 'relative', display: 'inline-block' }}>
+                                <span className="animated-text-line-1">Jnana Vikas</span> <br />
+                                <span className="animated-text-line-2" style={{ color: 'var(--accent)' }}>Digital Library</span>
+                                <div className="animated-heading-underline"></div>
                             </h1>
                             <p style={{ fontSize: '1.25rem', marginBottom: '3rem', opacity: 0.9, maxWidth: '600px', fontWeight: 300 }}>
                                 Empowering the students of JVIT with seamless access to global resources, research papers, and the finest literature.
                             </p>
                             <div className="d-flex flex-wrap gap-3">
-                                <Link to="/books" className="btn btn-light btn-lg px-5 py-3 shadow-lg" style={{ borderRadius: 'var(--radius-md)', fontWeight: 700 }}>
+                                <Link to="/books" className="btn btn-light btn-lg px-5 py-3 shadow-lg hero-btn hero-btn-1" style={{ borderRadius: 'var(--radius-md)', fontWeight: 700 }}>
                                     Explore Archive
                                 </Link>
-                                <Link to="/register" className="btn btn-outline-light btn-lg px-5 py-3" style={{ borderRadius: 'var(--radius-md)', border: '2px solid rgba(255,255,255,0.3)' }}>
+                                <Link to="/register" className="btn btn-outline-light btn-lg px-5 py-3 hero-btn hero-btn-2" style={{ borderRadius: 'var(--radius-md)', border: '2px solid rgba(255,255,255,0.3)' }}>
                                     Member Join
                                 </Link>
                             </div>
@@ -89,26 +81,14 @@ const Home = () => {
                                     animation: 'spin 20s linear infinite'
                                 }}></div>
 
-                                <div style={{
-                                    width: '320px',
-                                    height: '320px',
-                                    background: 'white',
-                                    borderRadius: '50%',
-                                    padding: '20px',
-                                    boxShadow: '0 0 50px rgba(0,0,0,0.3), inset 0 0 20px rgba(6, 95, 70, 0.2)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    position: 'relative',
-                                    zIndex: 2,
-                                    border: '8px solid rgba(255,255,255,0.1)'
-                                }}>
-                                    <img
-                                        src={`${process.env.PUBLIC_URL}/logo.jpg`}
-                                        alt="JVIT Seal"
-                                        style={{ width: '90%', height: 'auto', objectFit: 'contain' }}
-                                        onError={(e) => { e.target.src = "https://placehold.co/400x400/065f46/ffffff?text=JVIT"; }}
-                                    />
+                                <div className="rotating-logo-container">
+                                    <div className="rotating-logo">
+                                        <img
+                                            src={`${process.env.PUBLIC_URL}/logo.jpg`}
+                                            alt="JVIT Seal"
+                                            onError={(e) => { e.target.src = "https://placehold.co/400x400/065f46/ffffff?text=JVIT"; }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </Col>
@@ -120,8 +100,10 @@ const Home = () => {
             <section style={{ padding: '8rem 0', background: 'var(--bg-secondary)' }}>
                 <Container>
                     <div className="text-center mb-5 pb-4">
-                        <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800 }}>Academic Excellence 🎓</h2>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '700px', margin: '0 auto' }}>
+                        <h2 className="academic-heading" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800 }}>
+                            Academic Excellence <span className="academic-icon">🎓</span>
+                        </h2>
+                        <p className="academic-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '700px', margin: '0 auto' }}>
                             Advanced tools and resources designed to support your scholarly journey at Jnana Vikas Institute of Technology.
                         </p>
                     </div>
@@ -130,15 +112,15 @@ const Home = () => {
                         {features.map((feature, index) => (
                             <Col key={index} md={6} lg={3}>
                                 <Card
-                                    className="border-0 shadow-md h-100 text-center p-4"
+                                    className="border-0 shadow-md h-100 text-center p-4 feature-card"
                                     style={{
                                         borderRadius: 'var(--radius-lg)',
-                                        animation: `fadeIn 0.6s ease-out ${index * 0.1}s both`,
+                                        animation: `fadeUpBox 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) ${0.6 + index * 0.15}s both`,
                                         background: 'var(--bg-primary)'
                                     }}
                                 >
                                     <div style={{ color: 'var(--primary)', marginBottom: '1.5rem', display: 'inline-block' }}>
-                                        <div style={{ padding: '1.5rem', background: 'rgba(6, 95, 70, 0.05)', borderRadius: '20px' }}>
+                                        <div className="feature-icon-wrapper" style={{ padding: '1.5rem', background: 'rgba(6, 95, 70, 0.05)', borderRadius: '20px', animationDelay: `${0.8 + index * 0.15}s` }}>
                                             {feature.icon}
                                         </div>
                                     </div>

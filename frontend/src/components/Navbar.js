@@ -105,7 +105,7 @@ const Navbar = () => {
 
                                 <NavDropdown
                                     title={
-                                        <span>
+                                        <span className="profile-name-glow">
                                             <FiUser className="me-1" /> {user?.name}
                                         </span>
                                     }
@@ -136,7 +136,7 @@ const Navbar = () => {
 
                         <button
                             onClick={toggleTheme}
-                            className="btn btn-outline"
+                            className="btn btn-outline theme-toggle-btn"
                             style={{
                                 padding: '0.5rem',
                                 borderRadius: 'var(--radius-full)',
