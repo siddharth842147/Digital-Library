@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Form, InputGroup, Card, Badge, Pagination, Modal, Button, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Form, InputGroup, Card, Badge, Pagination, Modal, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { FiSearch, FiBook, FiPlus, FiCamera, FiImage } from 'react-icons/fi';
+import { FiSearch, FiBook, FiPlus, FiCamera } from 'react-icons/fi';
 import { getBooks, getCategories } from '../services/bookService';
 import { toast } from 'react-toastify';
 import axios from 'axios';
