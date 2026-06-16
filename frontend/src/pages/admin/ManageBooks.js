@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, Button, Table, Badge, Form, Modal, Spinner, InputGroup, ProgressBar } from 'react-bootstrap';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiBook, FiImage, FiCamera } from 'react-icons/fi';
-import { getBooks, addBook, updateBook, deleteBook, getCategories } from '../../services/bookService';
+import { getBooks, deleteBook, getCategories } from '../../services/bookService';
 import { toast } from 'react-toastify';
 import { Html5Qrcode } from 'html5-qrcode';
 import axios from 'axios';
