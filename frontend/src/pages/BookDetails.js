@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Badge, Spinner, ListGroup, Modal, Form } from 'react-bootstrap';
-import { FiArrowLeft, FiBook, FiCalendar, FiHash, FiMapPin, FiLayers, FiCheckCircle, FiClock, FiInfo, FiHeart, FiStar } from 'react-icons/fi';
+import { FiArrowLeft, FiBook, FiCalendar, FiHash, FiMapPin, FiLayers, FiCheckCircle, FiClock, FiHeart, FiStar } from 'react-icons/fi';
 import { getBook } from '../services/bookService';
 import { borrowBook } from '../services/borrowService';
 import { useAuth } from '../context/AuthContext';
@@ -51,7 +51,7 @@ const BookDetails = () => {
         };
 
         fetchBookDetails();
-    }, [id, navigate]);
+    }, [id, navigate, isAuthenticated]);
 
     const handleBorrowRequest = () => {
         if (!isAuthenticated) {
