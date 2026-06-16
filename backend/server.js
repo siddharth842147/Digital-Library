@@ -13,12 +13,12 @@ const logger = require('./utils/logger');
 require('dotenv').config();
 
 const Sentry = require("@sentry/node");
-const { nodeProfilingIntegration } = require("@sentry/profiling-node");
+const { ProfilingIntegration } = require("@sentry/profiling-node");
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN || "",
   integrations: [
-    nodeProfilingIntegration(),
+    new ProfilingIntegration(),
   ],
   // Performance Monitoring
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
