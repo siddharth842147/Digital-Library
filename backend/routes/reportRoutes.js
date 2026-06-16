@@ -1,13 +1,11 @@
 const express = require('express');
-const { getInventoryReport, getFineReport } = require('../controllers/reportController');
+const { getInventoryReport, getFineReport, exportCsv } = require('../controllers/reportController');
 const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.use(protect);
-router.use(authorize('admin'));
-
-router.get('/inventory', getInventoryReport);
-router.get('/fines', getFineReport);
+router.get('/inventory', protect, authorize('admin', 'librarian'), getInventoryReport);
+router.get('/fines', protect, authorize('admin', 'librarian'), getFineReport);
+router.get('/export/:type', protect, authorize('admin', 'librarian'), exportCsv);
 
 module.exports = router;

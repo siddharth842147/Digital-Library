@@ -49,6 +49,14 @@ const resourceSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'approved', 'rejected'],
         default: 'pending'
+    },
+    upvotes: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    aiFlagged: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

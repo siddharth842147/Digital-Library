@@ -81,3 +81,69 @@ exports.getFineReport = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// @desc    Export data to CSV
+// @route   GET /api/reports/export/:type
+// @access  Private (Admin)
+exports.exportCsv = async (req, res) => {
+    try {
+        const { type } = req.params;
+        let data = [];
+        let filename = '';
+
+        if (type === 'inventory') {
+            const books = await Book.find().lean();
+            data = books.map(b => ({
+                Title: `"${(b.title||'').replace(/"/g, '""')}"`,
+                Author: `"${(b.author||'').replace(/"/g, '""')}"`,
+                ISBN: b.isbn || 'N/A',
+                Category: b.category,
+                TotalCopies: b.totalCopies,
+                AvailableCopies: b.availableCopies,
+                Status: b.status
+            }));
+            filename = 'Inventory_Report.csv';
+        } else if (type === 'users') {
+            const users = await User.find({ role: 'student' }).lean();
+            data = users.map(u => ({
+                Name: `"${(u.name||'').replace(/"/g, '""')}"`,
+                Email: u.email,
+                USN: u.usn || 'N/A',
+                Branch: u.branch || 'N/A',
+                TotalFines: u.totalFines || 0,
+                Coins: u.coins || 0
+            }));
+            filename = 'Users_Report.csv';
+        } else if (type === 'borrows') {
+            const borrows = await Borrow.find().populate('user', 'name usn').populate('book', 'title').lean();
+            data = borrows.map(b => ({
+                UserName: b.user ? `"${(b.user.name||'').replace(/"/g, '""')}"` : 'Unknown',
+                USN: b.user?.usn || 'N/A',
+                BookTitle: b.book ? `"${(b.book.title||'').replace(/"/g, '""')}"` : 'Unknown',
+                BorrowDate: new Date(b.borrowDate).toLocaleDateString(),
+                DueDate: new Date(b.dueDate).toLocaleDateString(),
+                Status: b.status
+            }));
+            filename = 'Borrows_Report.csv';
+        } else {
+            return res.status(400).json({ success: false, message: 'Invalid export type' });
+        }
+
+        if (data.length === 0) {
+            return res.status(404).json({ success: false, message: 'No data to export' });
+        }
+
+        const headers = Object.keys(data[0]).join(',');
+        const csv = [
+            headers,
+            ...data.map(row => Object.values(row).join(','))
+        ].join('\n');
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+        res.status(200).send(csv);
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

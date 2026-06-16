@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Badge, Spinner, ListGroup, Modal, Form } from 'react-bootstrap';
-import { FiArrowLeft, FiBook, FiCalendar, FiHash, FiMapPin, FiLayers, FiCheckCircle, FiClock, FiInfo } from 'react-icons/fi';
+import { FiArrowLeft, FiBook, FiCalendar, FiHash, FiMapPin, FiLayers, FiCheckCircle, FiClock, FiInfo, FiHeart, FiStar } from 'react-icons/fi';
 import { getBook } from '../services/bookService';
 import { borrowBook } from '../services/borrowService';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +17,11 @@ const BookDetails = () => {
     const [loading, setLoading] = useState(true);
     const [borrowing, setBorrowing] = useState(false);
     const [showBorrowModal, setShowBorrowModal] = useState(false);
+    
+    const [reviewText, setReviewText] = useState('');
+    const [rating, setRating] = useState(5);
+    const [submittingReview, setSubmittingReview] = useState(false);
+    const [inWishlist, setInWishlist] = useState(false);
 
     // Set default return date to 14 days from now
     const defaultDate = new Date();
@@ -29,6 +34,14 @@ const BookDetails = () => {
                 setLoading(true);
                 const response = await getBook(id);
                 setBook(response.data);
+                
+                if (isAuthenticated) {
+                    const profileRes = await axios.get(`${process.env.REACT_APP_API_URL}/user/profile`, {
+                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    const wishlistIds = profileRes.data.data.wishlist.map(b => typeof b === 'object' ? b._id : b);
+                    setInWishlist(wishlistIds.includes(response.data._id));
+                }
             } catch (error) {
                 toast.error('Error fetching book details');
                 navigate('/books');
@@ -95,6 +108,45 @@ const BookDetails = () => {
             toast.error(error.response?.data?.message || 'Reservation failed');
         } finally {
             setBorrowing(false);
+        }
+    };
+
+    const handleWishlistToggle = async () => {
+        if (!isAuthenticated) {
+            toast.warn('Please login to use wishlist');
+            return;
+        }
+        try {
+            await axios.post(`${process.env.REACT_APP_API_URL}/user/wishlist/${book._id}`, {}, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setInWishlist(!inWishlist);
+            toast.success(inWishlist ? 'Removed from wishlist' : 'Added to wishlist');
+        } catch (error) {
+            toast.error('Failed to update wishlist');
+        }
+    };
+
+    const handleReviewSubmit = async (e) => {
+        e.preventDefault();
+        if (!isAuthenticated) {
+            toast.warn('Please login to leave a review');
+            return;
+        }
+        try {
+            setSubmittingReview(true);
+            const response = await axios.post(`${process.env.REACT_APP_API_URL}/books/${book._id}/reviews`, {
+                rating, comment: reviewText
+            }, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            toast.success('Review added successfully');
+            setBook({ ...book, reviews: response.data.data, averageRating: response.data.averageRating });
+            setReviewText('');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to submit review');
+        } finally {
+            setSubmittingReview(false);
         }
     };
 
@@ -211,8 +263,79 @@ const BookDetails = () => {
                                             )
                                         )}
                                     </Button>
+                                    <Button
+                                        variant={inWishlist ? "danger" : "outline-danger"}
+                                        size="lg"
+                                        className="px-4 py-3 fw-bold shadow-sm ms-2 d-flex align-items-center justify-content-center"
+                                        style={{ borderRadius: 'var(--radius-lg)' }}
+                                        onClick={handleWishlistToggle}
+                                    >
+                                        <FiHeart size={24} fill={inWishlist ? "white" : "none"} />
+                                    </Button>
                                 </div>
                             </Card.Body>
+                        </Col>
+                    </Row>
+                </Card>
+
+                {/* Reviews Section */}
+                <Card className="border-0 shadow-lg mt-5 p-4" style={{ borderRadius: 'var(--radius-xl)' }}>
+                    <h4 className="fw-bold mb-4 d-flex align-items-center gap-2">
+                        <FiStar className="text-warning" /> Reviews & Ratings
+                    </h4>
+                    
+                    <Row>
+                        <Col md={8}>
+                            {book.reviews && book.reviews.length > 0 ? (
+                                <ListGroup variant="flush">
+                                    {book.reviews.map((review, index) => (
+                                        <ListGroup.Item key={index} className="px-0 py-3 border-bottom border-light">
+                                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                                <div className="fw-bold">{review.name}</div>
+                                                <div className="text-muted small">{new Date(review.date).toLocaleDateString()}</div>
+                                            </div>
+                                            <div className="text-warning mb-2">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <FiStar key={i} fill={i < review.rating ? "currentColor" : "none"} />
+                                                ))}
+                                            </div>
+                                            <p className="text-secondary mb-0">{review.comment}</p>
+                                        </ListGroup.Item>
+                                    ))}
+                                </ListGroup>
+                            ) : (
+                                <p className="text-muted">No reviews yet. Be the first to review this book!</p>
+                            )}
+                        </Col>
+                        <Col md={4}>
+                            <div className="bg-light p-4 rounded-3">
+                                <h5 className="fw-bold mb-3">Leave a Review</h5>
+                                <Form onSubmit={handleReviewSubmit}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Rating</Form.Label>
+                                        <Form.Select value={rating} onChange={(e) => setRating(Number(e.target.value))}>
+                                            <option value={5}>5 - Excellent</option>
+                                            <option value={4}>4 - Very Good</option>
+                                            <option value={3}>3 - Average</option>
+                                            <option value={2}>2 - Poor</option>
+                                            <option value={1}>1 - Terrible</option>
+                                        </Form.Select>
+                                    </Form.Group>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Comment</Form.Label>
+                                        <Form.Control 
+                                            as="textarea" 
+                                            rows={3} 
+                                            value={reviewText}
+                                            onChange={(e) => setReviewText(e.target.value)}
+                                            required
+                                        />
+                                    </Form.Group>
+                                    <Button type="submit" variant="primary" disabled={submittingReview} className="w-100 fw-bold">
+                                        {submittingReview ? <Spinner size="sm" /> : 'Submit Review'}
+                                    </Button>
+                                </Form>
+                            </div>
                         </Col>
                     </Row>
                 </Card>

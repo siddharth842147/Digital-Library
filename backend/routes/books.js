@@ -7,7 +7,8 @@ const {
     deleteBook,
     getCategories,
     getBookStats,
-    bulkUploadBooks
+    bulkUploadBooks,
+    addReview
 } = require('../controllers/bookController');
 const { protect, authorize } = require('../middleware/auth');
 const { processUpload } = require('../middleware/uploadSecurity');
@@ -57,6 +58,7 @@ router.get('/categories/list', getCategories);
 router.get('/:id', getBook);
 
 // Protected routes (Admin/Librarian)
+router.post('/:id/reviews', protect, addReview);
 router.put('/:id', protect, authorize('admin', 'librarian'), upload.single('coverImage'), processUpload, updateBook);
 router.delete('/:id', protect, authorize('admin'), deleteBook);
 router.get('/stats/overview', protect, authorize('admin', 'librarian'), getBookStats);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Spinner, Table, Badge } from 'react-bootstrap';
 import { FiUsers, FiBook, FiClock, FiDollarSign, FiActivity, FiArrowRight, FiCheckCircle, FiShield, FiAlertTriangle } from 'react-icons/fi';
 import { getDashboardStats } from '../../services/adminService';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 
 const AdminDashboard = () => {
@@ -22,6 +23,25 @@ const AdminDashboard = () => {
         };
         fetchStats();
     }, []);
+
+    const handleExportCSV = async (type) => {
+        try {
+            const config = {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                responseType: 'blob'
+            };
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/reports/export/${type}`, config);
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${type}_report_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error('Failed to export CSV', error);
+        }
+    };
 
     if (loading) {
         return (
@@ -181,6 +201,21 @@ const AdminDashboard = () => {
                                     <Link to="/admin/borrows" className="btn btn-outline-primary d-flex align-items-center justify-content-between px-3 py-2">
                                         <span>Active Issues</span> <FiArrowRight />
                                     </Link>
+                                    <Link to="/admin/inventory-audit" className="btn btn-outline-warning d-flex align-items-center justify-content-between px-3 py-2">
+                                        <span>Inventory Audit</span> <FiArrowRight />
+                                    </Link>
+                                </div>
+                                <h5 className="fw-bold mb-3 mt-4">Export Data</h5>
+                                <div className="d-grid gap-2">
+                                    <button onClick={() => handleExportCSV('inventory')} className="btn btn-success d-flex align-items-center justify-content-between px-3 py-2">
+                                        <span>Export Inventory CSV</span> <FiArrowRight />
+                                    </button>
+                                    <button onClick={() => handleExportCSV('users')} className="btn btn-success d-flex align-items-center justify-content-between px-3 py-2">
+                                        <span>Export Users CSV</span> <FiArrowRight />
+                                    </button>
+                                    <button onClick={() => handleExportCSV('borrows')} className="btn btn-success d-flex align-items-center justify-content-between px-3 py-2">
+                                        <span>Export Borrows CSV</span> <FiArrowRight />
+                                    </button>
                                 </div>
                             </Card.Body>
                         </Card>

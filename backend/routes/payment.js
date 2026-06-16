@@ -10,11 +10,17 @@ const {
     getAdminPaymentDetails,
     submitManualPayment,
     verifyManualPayment,
-    applyCoinsPayment
+    applyCoinsPayment,
+    stripeWebhook,
+    razorpayWebhook
 } = require('../controllers/paymentController');
 const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Webhook Routes (Must be unprotected)
+router.post('/webhook/stripe', stripeWebhook);
+router.post('/webhook/razorpay', razorpayWebhook);
 
 // All protected routes
 router.post('/create-order', protect, createOrder);

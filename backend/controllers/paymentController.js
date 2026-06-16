@@ -662,3 +662,54 @@ exports.applyCoinsPayment = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// @desc    Stripe Webhook handler
+// @route   POST /api/payment/webhook/stripe
+// @access  Public
+exports.stripeWebhook = async (req, res) => {
+    try {
+        const sig = req.headers['stripe-signature'];
+        // In a real application with raw body parsing enabled for this route:
+        // const event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+        
+        // Mocking webhook verification for this implementation plan
+        console.log("🔔 Stripe webhook received via server-to-server connection.");
+        
+        // Placeholder for event processing (e.g. event.type === 'payment_intent.succeeded')
+        res.status(200).json({ received: true });
+    } catch (err) {
+        console.error("Stripe Webhook Error:", err.message);
+        res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+};
+
+// @desc    Razorpay Webhook handler
+// @route   POST /api/payment/webhook/razorpay
+// @access  Public
+exports.razorpayWebhook = async (req, res) => {
+    try {
+        const secret = process.env.RAZORPAY_WEBHOOK_SECRET || 'fallback_secret';
+        const signature = req.headers['x-razorpay-signature'];
+
+        const body = JSON.stringify(req.body);
+        const expectedSignature = crypto
+            .createHmac('sha256', secret)
+            .update(body)
+            .digest('hex');
+
+        if (expectedSignature === signature) {
+            console.log("🔔 Razorpay webhook verified successfully.", req.body.event);
+            
+            // Handle events like 'payment.captured', 'order.paid'
+            // if (req.body.event === 'payment.captured') { ... }
+
+            res.status(200).json({ status: 'ok' });
+        } else {
+            console.warn("Invalid Razorpay webhook signature");
+            res.status(400).json({ error: 'Invalid signature' });
+        }
+    } catch (error) {
+        console.error("Razorpay webhook error:", error);
+        res.status(500).send("Webhook processing failed");
+    }
+};

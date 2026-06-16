@@ -40,8 +40,10 @@ const Dashboard = () => {
         overdue: 0,
         pendingFines: 0,
         coins: 0,
-        recentBooks: []
+        recentBooks: [],
+        wishlist: []
     });
+    const [recommendations, setRecommendations] = useState('');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -63,12 +65,28 @@ const Dashboard = () => {
                     console.error('Failed to fetch coins', e);
                 }
 
+                let profileWishlist = [];
+                try {
+                    const profileRes = await axios.get(`${process.env.REACT_APP_API_URL}/user/profile`, {
+                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    profileWishlist = profileRes.data.data.wishlist || [];
+                } catch (e) {
+                    console.error('Failed to fetch profile', e);
+                }
+
+                // Fetch AI recommendations without blocking everything
+                axios.get(`${process.env.REACT_APP_API_URL}/user/recommendations`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                }).then(res => setRecommendations(res.data.data)).catch(err => console.error(err));
+
                 setStats({
                     totalBorrowed: borrows.length,
                     overdue: borrows.filter(b => b.status === 'overdue').length,
                     pendingFines: Math.max(0, (user?.totalFines || 0) + currentBorrowsAccruedFine),
                     coins: coinsData,
-                    recentBooks: borrows.slice(0, 3)
+                    recentBooks: borrows.slice(0, 3),
+                    wishlist: profileWishlist.slice(0, 3)
                 });
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
@@ -219,6 +237,60 @@ const Dashboard = () => {
                                 )}
                             </Card.Body>
                         </Card>
+
+                        {/* AI Recommendations */}
+                        <Card className="border-0 shadow-sm mt-4" style={{ borderRadius: 'var(--radius-xl)' }}>
+                            <Card.Header className="bg-transparent border-0 p-4 d-flex justify-content-between align-items-center">
+                                <h5 className="mb-0 fw-bold d-flex align-items-center gap-2">
+                                    <span style={{ fontSize: '1.2rem' }}>✨</span> AI Recommended for You
+                                </h5>
+                            </Card.Header>
+                            <Card.Body className="px-4 pb-4 pt-0">
+                                {recommendations ? (
+                                    <div dangerouslySetInnerHTML={{ __html: recommendations }} style={{ lineHeight: '1.8' }} className="text-secondary" />
+                                ) : (
+                                    <div className="d-flex align-items-center gap-2 text-muted">
+                                        <Spinner size="sm" animation="border" /> <span>Virtual Librarian is analyzing your reading history...</span>
+                                    </div>
+                                )}
+                            </Card.Body>
+                        </Card>
+
+                        {/* Wishlist */}
+                        {stats.wishlist && stats.wishlist.length > 0 && (
+                            <Card className="border-0 shadow-sm mt-4" style={{ borderRadius: 'var(--radius-xl)' }}>
+                                <Card.Header className="bg-transparent border-0 p-4 d-flex justify-content-between align-items-center">
+                                    <h5 className="mb-0 fw-bold d-flex align-items-center gap-2">
+                                        <span style={{ fontSize: '1.2rem' }}>⭐</span> My Wishlist
+                                    </h5>
+                                </Card.Header>
+                                <Card.Body className="p-0">
+                                    <div className="table-responsive">
+                                        <Table hover className="align-middle border-0 mb-0">
+                                            <tbody>
+                                                {stats.wishlist.map(book => (
+                                                    <tr key={book._id}>
+                                                        <td className="px-4 py-3">
+                                                            <div className="d-flex align-items-center gap-3">
+                                                                <img
+                                                                    src={book.coverImage || 'https://placehold.co/40x60?text=No+Cover'}
+                                                                    alt=""
+                                                                    style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '6px' }}
+                                                                />
+                                                                <div>
+                                                                    <div className="fw-bold"><Link to={`/book/${book._id}`} className="text-decoration-none text-dark">{book.title}</Link></div>
+                                                                    <small className="text-muted">{book.author}</small>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </Table>
+                                    </div>
+                                </Card.Body>
+                            </Card>
+                        )}
                     </Col>
 
                     {/* Quick Profile */}

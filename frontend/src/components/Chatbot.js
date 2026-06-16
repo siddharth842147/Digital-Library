@@ -71,8 +71,8 @@ const Chatbot = () => {
                     <div className="chatbot-title">
                         <FaRobot className="me-2" /> Virtual Librarian
                     </div>
-                    <button className="chatbot-close-btn" onClick={() => setIsOpen(false)}>
-                        <FaTimes />
+                    <button className="chatbot-close-btn" onClick={() => setIsOpen(false)} aria-label="Close Chat">
+                        <FaTimes aria-hidden="true" />
                     </button>
                 </div>
 
@@ -103,9 +103,10 @@ const Chatbot = () => {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         disabled={isLoading}
+                        aria-label="Type your message"
                     />
-                    <button type="submit" disabled={isLoading || !input.trim()}>
-                        <FaPaperPlane />
+                    <button type="submit" disabled={isLoading || !input.trim()} aria-label="Send message">
+                        <FaPaperPlane aria-hidden="true" />
                     </button>
                 </form>
             </div>

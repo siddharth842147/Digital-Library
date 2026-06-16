@@ -2,6 +2,8 @@ const Book = require('../models/Book');
 const csv = require('csv-parser');
 const fs = require('fs');
 const path = require('path');
+const NodeCache = require('node-cache');
+const cache = new NodeCache({ stdTTL: 300 }); // 5 minutes cache
 
 // @desc    Get all books
 // @route   GET /api/books
@@ -9,6 +11,13 @@ const path = require('path');
 exports.getBooks = async (req, res) => {
     try {
         const { search, category, status, page = 1, limit = 12 } = req.query;
+
+        const cacheKey = `books_${search || ''}_${category || ''}_${status || ''}_${page}_${limit}`;
+        const cachedData = cache.get(cacheKey);
+
+        if (cachedData) {
+            return res.status(200).json(cachedData);
+        }
 
         // Build query
         let query = {};
@@ -43,14 +52,18 @@ exports.getBooks = async (req, res) => {
 
         const total = await Book.countDocuments(query);
 
-        res.status(200).json({
+        const responseData = {
             success: true,
             count: books.length,
             total,
             totalPages: Math.ceil(total / limit),
             currentPage: parseInt(page),
             data: books
-        });
+        };
+
+        cache.set(cacheKey, responseData);
+
+        res.status(200).json(responseData);
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -101,6 +114,13 @@ exports.addBook = async (req, res) => {
 
         const book = await Book.create(req.body);
 
+        cache.flushAll();
+
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('new_book', { message: `New book added: ${book.title}`, bookId: book._id });
+        }
+
         res.status(201).json({
             success: true,
             message: 'Book added successfully',
@@ -146,6 +166,8 @@ exports.updateBook = async (req, res) => {
             runValidators: true
         });
 
+        cache.flushAll();
+
         res.status(200).json({
             success: true,
             message: 'Book updated successfully',
@@ -181,7 +203,9 @@ exports.deleteBook = async (req, res) => {
             });
         }
 
-        await book.deleteOne();
+        await Book.findByIdAndDelete(req.params.id);
+
+        cache.flushAll();
 
         res.status(200).json({
             success: true,
@@ -408,8 +432,9 @@ exports.bulkUploadBooks = async (req, res) => {
                     }
 
                     // Clean up file
-                    fs.unlinkSync(filePath);
-                    res.status(201).json({
+                    fs.unlinkSync(req.file.path);
+                    cache.flushAll();
+                    res.status(200).json({
                         success: true,
                         message: `Successfully processed ${books.length} records into ${uniqueBooks.length} distinct titles!`
                     });
@@ -418,6 +443,51 @@ exports.bulkUploadBooks = async (req, res) => {
                     res.status(500).json({ success: false, message: err.message });
                 }
             });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Add review to book
+// @route   POST /api/books/:id/reviews
+// @access  Private
+exports.addReview = async (req, res) => {
+    try {
+        const { rating, comment } = req.body;
+        const bookId = req.params.id;
+
+        const book = await Book.findById(bookId);
+
+        if (!book) {
+            return res.status(404).json({ success: false, message: 'Book not found' });
+        }
+
+        // Check if user already reviewed
+        const alreadyReviewed = book.reviews.find(
+            r => r.user.toString() === req.user.id.toString()
+        );
+
+        if (alreadyReviewed) {
+            return res.status(400).json({ success: false, message: 'You have already reviewed this book' });
+        }
+
+        const review = {
+            user: req.user.id,
+            name: req.user.name || 'User',
+            rating: Number(rating),
+            comment
+        };
+
+        book.reviews.push(review);
+
+        // Update average rating
+        book.averageRating = book.reviews.reduce((acc, item) => item.rating + acc, 0) / book.reviews.length;
+
+        await book.save();
+
+        cache.flushAll();
+
+        res.status(201).json({ success: true, message: 'Review added', data: book.reviews });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

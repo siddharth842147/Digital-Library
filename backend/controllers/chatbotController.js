@@ -132,3 +132,41 @@ Write a polite, conversational response to the user presenting these options. Ke
         res.status(500).json({ success: false, message: 'Sorry, I am having trouble connecting to my knowledge base right now.', error: error.message });
     }
 };
+
+exports.getRecommendations = async (req, res) => {
+    try {
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ success: false, message: 'Gemini API not configured' });
+        }
+
+        const User = require('../models/User');
+        const user = await User.findById(req.user.id).populate('borrowedBooks', 'title author category');
+
+        let prompt = `You are a helpful virtual librarian. The user "${user.name}" wants book recommendations. `;
+        
+        if (user.borrowedBooks && user.borrowedBooks.length > 0) {
+            const history = user.borrowedBooks.map(b => `${b.title} by ${b.author} (${b.category})`).join(', ');
+            prompt += `They have previously borrowed these books: ${history}. Based on this, suggest 3 new books they might like that exist in a typical college library. Format as a clean HTML unordered list (<ul><li>...</li></ul>) without any markdown code blocks. Give a brief 1-sentence reason for each.`;
+        } else {
+            prompt += `They haven't borrowed any books yet. Suggest 3 highly rated, popular books for a college student (mix of technology, science, and self-help). Format as a clean HTML unordered list (<ul><li>...</li></ul>) without any markdown code blocks. Give a brief 1-sentence reason for each.`;
+        }
+
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+
+        const result = await model.generateContent(prompt);
+        let recommendations = result.response.text();
+        
+        // Clean up possible markdown code blocks around HTML
+        recommendations = recommendations.replace(/```html/g, '').replace(/```/g, '').trim();
+        
+        res.status(200).json({
+            success: true,
+            data: recommendations
+        });
+
+    } catch (error) {
+        console.error('Recommendation Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to get recommendations' });
+    }
+};

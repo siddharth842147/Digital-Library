@@ -4,6 +4,8 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
+import { io } from 'socket.io-client';
+import { toast } from 'react-toastify';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -14,6 +16,7 @@ import Footer from './components/Footer';
 import Loading from './components/Loading';
 import Chatbot from './components/Chatbot';
 import SessionExpiryModal from './components/SessionExpiryModal';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages (Lazy Loaded)
 const Home = lazy(() => import('./pages/Home'));
@@ -37,6 +40,7 @@ const BorrowManagement = lazy(() => import('./pages/admin/BorrowManagement'));
 const VerifyPayments = lazy(() => import('./pages/admin/VerifyPayments'));
 const ManageHolidays = lazy(() => import('./pages/admin/ManageHolidays'));
 const ManageResources = lazy(() => import('./pages/admin/ManageResources'));
+const InventoryAudit = lazy(() => import('./pages/admin/InventoryAudit'));
 
 // Protected Route Component
 const ProtectedRoute = ({ children, roles = [] }) => {
@@ -75,13 +79,27 @@ const PublicRoute = ({ children }) => {
 function AppContent() {
     const { showSessionExpired, setShowSessionExpired } = useAuth();
 
+    React.useEffect(() => {
+        const socket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000');
+        
+        socket.on('new_book', (data) => {
+            toast.info(`📚 ${data.message}`, {
+                position: "top-right",
+                autoClose: 5000,
+            });
+        });
+
+        return () => socket.disconnect();
+    }, []);
+
     return (
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <div className="app">
                 <Navbar />
                 <main style={{ minHeight: '80vh' }}>
-                    <Suspense fallback={<Loading />}>
-                        <Routes>
+                    <ErrorBoundary>
+                        <Suspense fallback={<Loading />}>
+                            <Routes>
                         {/* Public Routes */}
                         <Route path="/" element={<Home />} />
                         <Route path="/books" element={<Books />} />
@@ -207,9 +225,18 @@ function AppContent() {
                                 </ProtectedRoute>
                             }
                         />
-                        <Route path="*" element={<Navigate to="/" />} />
-                    </Routes>
-                    </Suspense>
+                        <Route
+                            path="/admin/inventory-audit"
+                            element={
+                                <ProtectedRoute roles={['admin', 'librarian']}>
+                                    <InventoryAudit />
+                                </ProtectedRoute>
+                            }
+                        />
+                            <Route path="*" element={<Navigate to="/" />} />
+                        </Routes>
+                        </Suspense>
+                    </ErrorBoundary>
                 </main>
                 <Footer />
                 <SessionExpiryModal 

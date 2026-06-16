@@ -1,14 +1,16 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Container, Nav, Navbar as BSNavbar, NavDropdown } from 'react-bootstrap';
-import { FiBook, FiSun, FiMoon, FiUser, FiLogOut, FiHome, FiGrid } from 'react-icons/fi';
+import { FiBook, FiSun, FiMoon, FiUser, FiLogOut, FiHome, FiGrid, FiGlobe } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const Navbar = () => {
     const { isAuthenticated, user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
+    const { t, i18n } = useTranslation();
 
     const handleLogout = () => {
         logout();
@@ -42,7 +44,7 @@ const Navbar = () => {
                     </div>
                 </BSNavbar.Brand>
 
-                <BSNavbar.Toggle aria-controls="basic-navbar-nav" className="border-0 shadow-none">
+                <BSNavbar.Toggle aria-controls="basic-navbar-nav" className="border-0 shadow-none" aria-label="Toggle navigation">
                     <span className="navbar-toggler-icon" style={{ width: '1.2em', height: '1.2em' }}></span>
                 </BSNavbar.Toggle>
 
@@ -52,20 +54,20 @@ const Navbar = () => {
                             <FiHome className="me-1" /> Home
                         </Nav.Link>
                         <Nav.Link as={Link} to="/books">
-                            <FiBook className="me-1" /> Books
+                            <FiBook className="me-1" /> {t('Library')}
                         </Nav.Link>
                         <Nav.Link as={Link} to="/policy">Library Policy</Nav.Link>
-                        <Nav.Link as={Link} to="/resources">Resource Hub</Nav.Link>
+                        <Nav.Link as={Link} to="/resources">{t('Resources')}</Nav.Link>
 
                         {isAuthenticated ? (
                             <>
                                 <Nav.Link as={Link} to="/dashboard">
-                                    <FiGrid className="me-1" /> Dashboard
+                                    <FiGrid className="me-1" /> {t('Dashboard')}
                                 </Nav.Link>
 
                                 {user?.role === 'student' && (
                                     <Nav.Link as={Link} to="/my-books">
-                                        My Books
+                                        {t('My Books')}
                                     </Nav.Link>
                                 )}
 
@@ -115,24 +117,38 @@ const Navbar = () => {
                                         Profile
                                     </NavDropdown.Item>
                                     <NavDropdown.Item as={Link} to="/payment-history">
-                                        Payment History
+                                        {t('Payment History')}
                                     </NavDropdown.Item>
                                     <NavDropdown.Divider />
                                     <NavDropdown.Item onClick={handleLogout}>
-                                        <FiLogOut className="me-1" /> Logout
+                                        <FiLogOut className="me-1" /> {t('Logout')}
                                     </NavDropdown.Item>
                                 </NavDropdown>
                             </>
                         ) : (
                             <>
                                 <Link to="/login" className="btn btn-outline">
-                                    Login
+                                    {t('Login')}
                                 </Link>
                                 <Link to="/register" className="btn btn-primary">
-                                    Register
+                                    {t('Register')}
                                 </Link>
                             </>
                         )}
+
+                        <NavDropdown
+                            title={<FiGlobe size={20} aria-hidden="true" />}
+                            id="language-dropdown"
+                            align="end"
+                            aria-label="Select Language"
+                        >
+                            <NavDropdown.Item onClick={() => i18n.changeLanguage('en')}>
+                                English
+                            </NavDropdown.Item>
+                            <NavDropdown.Item onClick={() => i18n.changeLanguage('hi')}>
+                                हिंदी (Hindi)
+                            </NavDropdown.Item>
+                        </NavDropdown>
 
                         <button
                             onClick={toggleTheme}

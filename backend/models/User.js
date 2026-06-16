@@ -70,6 +70,10 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Book'
     }],
+    wishlist: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Book'
+    }],
     totalFines: {
         type: Number,
         default: 0

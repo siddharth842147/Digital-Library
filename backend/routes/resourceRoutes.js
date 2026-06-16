@@ -6,7 +6,8 @@ const {
     updateResource,
     deleteResource,
     incrementDownload,
-    updateResourceStatus
+    updateResourceStatus,
+    upvoteResource
 } = require('../controllers/resourceController');
 
 const router = express.Router();
@@ -53,6 +54,8 @@ router.route('/:id')
     .delete(protect, authorize('admin'), deleteResource);
 
 router.put('/:id/status', protect, authorize('admin', 'librarian'), updateResourceStatus);
+
+router.post('/:id/upvote', protect, upvoteResource);
 
 router.put('/:id/download', incrementDownload);
 

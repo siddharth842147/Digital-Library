@@ -1,4 +1,5 @@
 const Resource = require('../models/Resource');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // @desc    Get all resources
 // @route   GET /api/resources
@@ -69,6 +70,22 @@ exports.createResource = async (req, res) => {
         if (req.file) {
             req.body.fileUrl = `/uploads/resources/${req.file.filename}`;
             req.body.fileName = req.file.originalname;
+        }
+
+        try {
+            if (process.env.GEMINI_API_KEY) {
+                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+                const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                const prompt = `Analyze this academic resource title and description. Return "FLAGGED" if it contains inappropriate, offensive, hateful, or clearly spam non-academic content. Otherwise return "OK". Title: "${req.body.title}", Description: "${req.body.description || ''}"`;
+                const result = await model.generateContent(prompt);
+                const text = result.response.text().trim();
+                if (text.includes("FLAGGED")) {
+                    req.body.aiFlagged = true;
+                    req.body.status = 'pending'; // Force pending review
+                }
+            }
+        } catch (aiError) {
+            console.error('AI Moderation failed:', aiError);
         }
 
         const resource = await Resource.create(req.body);
@@ -175,6 +192,38 @@ exports.updateResourceStatus = async (req, res) => {
         res.status(200).json({
             success: true,
             data: resource
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Upvote resource
+// @route   POST /api/resources/:id/upvote
+// @access  Private
+exports.upvoteResource = async (req, res) => {
+    try {
+        const resource = await Resource.findById(req.params.id);
+
+        if (!resource) {
+            return res.status(404).json({ success: false, message: 'Resource not found' });
+        }
+
+        const userId = req.user.id;
+        
+        // Toggle upvote
+        if (resource.upvotes.includes(userId)) {
+            resource.upvotes = resource.upvotes.filter(id => id.toString() !== userId);
+        } else {
+            resource.upvotes.push(userId);
+        }
+
+        await resource.save();
+
+        res.status(200).json({
+            success: true,
+            data: resource,
+            upvoted: resource.upvotes.includes(userId)
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

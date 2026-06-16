@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Badge, Spinner, Modal } from 'react-bootstrap';
-import { FiDownload, FiSearch, FiUpload } from 'react-icons/fi';
+import { FiDownload, FiSearch, FiUpload, FiThumbsUp, FiAlertTriangle } from 'react-icons/fi';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
@@ -44,7 +44,14 @@ const AcademicResources = () => {
             }
 
             const { data } = await axios.get(`${process.env.REACT_APP_API_URL}/resources?${queryParams}`, config);
-            setResources(data.data);
+            
+            // Sort by upvotes
+            const sortedResources = data.data.sort((a, b) => {
+                const aVotes = a.upvotes ? a.upvotes.length : 0;
+                const bVotes = b.upvotes ? b.upvotes.length : 0;
+                return bVotes - aVotes;
+            });
+            setResources(sortedResources);
         } catch (error) {
             toast.error('Failed to fetch resources');
         } finally {
@@ -100,6 +107,35 @@ const AcademicResources = () => {
             window.open(`${process.env.REACT_APP_API_URL.replace('/api', '')}${fileUrl}`, '_blank');
         } catch (error) {
             console.error('Download tracking failed', error);
+        }
+    };
+
+    const handleUpvote = async (id) => {
+        if (!isAuthenticated) {
+            toast.warn('Please login to upvote resources');
+            return;
+        }
+        try {
+            const config = { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
+            const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/resources/${id}/upvote`, {}, config);
+            
+            // Update resources state
+            setResources(resources.map(res => {
+                if (res._id === id) {
+                    return { ...res, upvotes: data.data.upvotes };
+                }
+                return res;
+            }).sort((a, b) => {
+                const aVotes = a.upvotes ? a.upvotes.length : 0;
+                const bVotes = b.upvotes ? b.upvotes.length : 0;
+                return bVotes - aVotes;
+            }));
+            
+            if (data.upvoted) {
+                toast.success('Upvoted!');
+            }
+        } catch (error) {
+            toast.error('Failed to upvote');
         }
     };
 
@@ -182,10 +218,22 @@ const AcademicResources = () => {
                                         <Badge bg="primary-light" className="text-primary px-3 py-2 rounded-pill">
                                             {resource.type}
                                         </Badge>
-                                        <div className="text-muted small">
-                                            {resource.downloadCount} Downloads
+                                        <div className="d-flex align-items-center gap-3 text-muted small">
+                                            <span>{resource.downloadCount} Downloads</span>
+                                            <span 
+                                                className="d-flex align-items-center gap-1 cursor-pointer" 
+                                                onClick={() => handleUpvote(resource._id)}
+                                                style={{ cursor: 'pointer', color: resource.upvotes?.includes(user?._id) ? 'var(--primary)' : 'inherit' }}
+                                            >
+                                                <FiThumbsUp /> {resource.upvotes?.length || 0}
+                                            </span>
                                         </div>
                                     </div>
+                                    {user?.role === 'admin' && resource.aiFlagged && (
+                                        <div className="mb-2 text-danger small fw-bold d-flex align-items-center gap-1">
+                                            <FiAlertTriangle /> Flagged by AI Moderation
+                                        </div>
+                                    )}
                                     <h5 className="fw-bold mb-2">{resource.title}</h5>
                                     <div className="small text-muted mb-4">
                                         <div><strong>Branch:</strong> {resource.branch}</div>

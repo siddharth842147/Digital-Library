@@ -12,6 +12,20 @@ const { doubleCsrf } = require('csrf-csrf');
 const logger = require('./utils/logger');
 require('dotenv').config();
 
+const Sentry = require("@sentry/node");
+const { nodeProfilingIntegration } = require("@sentry/profiling-node");
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN || "",
+  integrations: [
+    nodeProfilingIntegration(),
+  ],
+  // Performance Monitoring
+  tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
+  // Set sampling rate for profiling - this is relative to tracesSampleRate
+  profilesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
+});
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const bookRoutes = require('./routes/books');
@@ -23,9 +37,36 @@ const isbnRoutes = require('./routes/isbn');
 const holidayRoutes = require('./routes/holiday');
 const resourceRoutes = require('./routes/resourceRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const http = require('http');
+const { Server } = require('socket.io');
 const chatbotRoutes = require('./routes/chatbot');
 
 const app = express();
+
+// The request handler must be the first middleware on the app
+app.use(Sentry.Handlers.requestHandler());
+
+// TracingHandler creates a trace for every incoming request
+app.use(Sentry.Handlers.tracingHandler());
+
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+        methods: ["GET", "POST"]
+    }
+});
+
+// Expose io to routes
+app.set('io', io);
+
+// Socket.io connection handler
+io.on('connection', (socket) => {
+    console.log('User connected to socket:', socket.id);
+    socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
+    });
+});
 
 // Security middleware
 app.disable('x-powered-by');
@@ -161,6 +202,9 @@ app.use((req, res) => {
 });
 
 // Global error handler
+// The error handler must be before any other error middleware and after all controllers
+app.use(Sentry.Handlers.errorHandler());
+
 app.use((err, req, res, next) => {
   logger.error(err.stack);
 
@@ -180,7 +224,7 @@ if (process.env.NODE_ENV !== 'test') {
 // Start server
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   });
 }

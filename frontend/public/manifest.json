@@ -1,15 +1,19 @@
 {
-    "short_name": "Library System",
-    "name": "Library Management System",
+    "short_name": "JVIT Lib",
+    "name": "JVIT Digital Library Management System",
+    "description": "A comprehensive digital library management system for students and librarians.",
     "icons": [
         {
             "src": "logo.jpg",
             "sizes": "192x192 512x512",
-            "type": "image/jpeg"
+            "type": "image/jpeg",
+            "purpose": "any maskable"
         }
     ],
     "start_url": ".",
     "display": "standalone",
-    "theme_color": "#000000",
-    "background_color": "#ffffff"
+    "theme_color": "#1e1e2d",
+    "background_color": "#151521",
+    "orientation": "portrait",
+    "categories": ["education", "books", "utilities"]
 }
