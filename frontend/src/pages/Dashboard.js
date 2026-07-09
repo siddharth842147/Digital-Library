@@ -1,0 +1,351 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Container, Row, Col, Card, Badge, Table, Spinner } from 'react-bootstrap';
+import { FiBook, FiClock, FiDollarSign, FiUser, FiActivity, FiArrowRight } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
+import { getMyBorrowedBooks } from '../services/borrowService';
+import { Link, Navigate } from 'react-router-dom';
+
+const AnimatedNumber = ({ value }) => {
+    const [count, setCount] = useState(0);
+    useEffect(() => {
+        let start = 0;
+        const duration = 1000;
+        const end = parseInt(value, 10) || 0;
+        if (start === end) {
+            setCount(end);
+            return;
+        }
+        let startTime = null;
+        const step = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            const easeProgress = 1 - Math.pow(1 - progress, 3);
+            setCount(Math.floor(easeProgress * (end - start) + start));
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                setCount(end);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }, [value]);
+    return <>{count}</>;
+};
+
+const Dashboard = () => {
+    const { user } = useAuth();
+    const [stats, setStats] = useState({
+        totalBorrowed: 0,
+        overdue: 0,
+        pendingFines: 0,
+        coins: 0,
+        recentBooks: [],
+        wishlist: []
+    });
+    const [recommendations, setRecommendations] = useState('');
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                setLoading(true);
+                const response = await getMyBorrowedBooks();
+                const borrows = response.data;
+
+                const currentBorrowsAccruedFine = borrows.reduce((sum, b) => sum + (b.accruedFine || 0), 0);
+
+                let coinsData = 0;
+                try {
+                    const coinRes = await axios.get(`${process.env.REACT_APP_API_URL}/user/coins`, {
+                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    coinsData = coinRes.data.data.coins;
+                } catch (e) {
+                    console.error('Failed to fetch coins', e);
+                }
+
+                let profileWishlist = [];
+                try {
+                    const profileRes = await axios.get(`${process.env.REACT_APP_API_URL}/user/profile`, {
+                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    profileWishlist = profileRes.data.data.wishlist || [];
+                } catch (e) {
+                    console.error('Failed to fetch profile', e);
+                }
+
+                // Fetch AI recommendations without blocking everything
+                axios.get(`${process.env.REACT_APP_API_URL}/user/recommendations`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                }).then(res => setRecommendations(res.data.data)).catch(err => console.error(err));
+
+                setStats({
+                    totalBorrowed: borrows.length,
+                    overdue: borrows.filter(b => b.status === 'overdue').length,
+                    pendingFines: Math.max(0, (user?.totalFines || 0) + currentBorrowsAccruedFine),
+                    coins: coinsData,
+                    recentBooks: borrows.slice(0, 3),
+                    wishlist: profileWishlist.slice(0, 3)
+                });
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user && user.role === 'student') {
+            fetchDashboardData();
+        } else if (user) {
+            setLoading(false);
+        }
+    }, [user]);
+
+    if (user && user.role !== 'student') {
+        return <Navigate to="/admin/dashboard" />;
+    }
+
+    if (loading) {
+        return (
+            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
+                <Spinner animation="border" variant="primary" />
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ padding: '3rem 0', background: 'var(--bg-secondary)', minHeight: 'calc(100vh - 70px)', position: 'relative' }}>
+            <div className="dash-bg-particles"></div>
+            <Container style={{ position: 'relative', zIndex: 1 }}>
+                <div className="mb-5">
+                    <h1 style={{ fontWeight: 800 }}>Welcome back, {user?.name.split(' ')[0]}! 👋</h1>
+                    <p className="text-muted">Here's an overview of your library activity.</p>
+                </div>
+
+                {/* Stats Cards */}
+                <Row className="g-4 mb-5">
+                    <Col lg={3} md={6}>
+                        <Card className="border-0 shadow-sm h-100 dash-summary-card" style={{ borderRadius: 'var(--radius-xl)', animationDelay: '0.1s' }}>
+                            <Card.Body className="p-4 d-flex align-items-center gap-4">
+                                <div style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', padding: '1.25rem', borderRadius: '20px' }}>
+                                    <FiBook size={32} />
+                                </div>
+                                <div>
+                                    <h2 className="mb-0 fw-bold"><AnimatedNumber value={stats.totalBorrowed} /></h2>
+                                    <p className="text-muted mb-0">Books Borrowed</p>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                    <Col lg={3} md={6}>
+                        <Card className="border-0 shadow-sm h-100 dash-summary-card" style={{ borderRadius: 'var(--radius-xl)', animationDelay: '0.2s' }}>
+                            <Card.Body className="p-4 d-flex align-items-center gap-4">
+                                <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', padding: '1.25rem', borderRadius: '20px' }}>
+                                    <FiClock size={32} />
+                                </div>
+                                <div>
+                                    <h2 className="mb-0 fw-bold"><AnimatedNumber value={stats.overdue} /></h2>
+                                    <p className="text-muted mb-0">Overdue Books</p>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                    <Col lg={3} md={6}>
+                        <Card className="border-0 shadow-sm h-100 dash-summary-card" style={{ borderRadius: 'var(--radius-xl)', animationDelay: '0.3s' }}>
+                            <Card.Body className="p-4 d-flex align-items-center gap-4">
+                                <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', padding: '1.25rem', borderRadius: '20px' }}>
+                                    <FiDollarSign size={32} />
+                                </div>
+                                <div>
+                                    <h2 className="mb-0 fw-bold">₹<AnimatedNumber value={stats.pendingFines} /></h2>
+                                    <p className="text-muted mb-0">Pending Fines</p>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                    <Col lg={3} md={6}>
+                        <Card className="border-0 shadow-sm h-100 dash-summary-card" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white', borderRadius: 'var(--radius-xl)', animationDelay: '0.4s' }}>
+                            <Card.Body className="p-4 d-flex align-items-center gap-4">
+                                <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '1.25rem', borderRadius: '20px' }}>
+                                    <span style={{ fontSize: '32px', lineHeight: 1 }}>🪙</span>
+                                </div>
+                                <div>
+                                    <h2 className="mb-0 fw-bold"><AnimatedNumber value={stats.coins} /></h2>
+                                    <p className="text-white-50 fw-bold mb-0">JViT Coins</p>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+
+                <Row className="g-4">
+                    {/* Recent Activity */}
+                    <Col lg={8}>
+                        <Card className="border-0 shadow-sm h-100" style={{ borderRadius: 'var(--radius-xl)' }}>
+                            <Card.Header className="bg-transparent border-0 p-4 d-flex justify-content-between align-items-center">
+                                <h5 className="mb-0 fw-bold d-flex align-items-center gap-2">
+                                    <FiActivity style={{ color: 'var(--primary)' }} /> Currently Reading
+                                </h5>
+                                <Link to="/my-books" className="text-decoration-none small fw-bold">View All <FiArrowRight /></Link>
+                            </Card.Header>
+                            <Card.Body className="p-0">
+                                {stats.recentBooks.length > 0 ? (
+                                    <div className="table-responsive">
+                                        <Table hover className="align-middle border-0 mb-0">
+                                            <thead className="bg-light">
+                                                <tr>
+                                                    <th className="px-4 py-3 border-0">Book</th>
+                                                    <th className="py-3 border-0">Issue Date</th>
+                                                    <th className="py-3 border-0">Due Date</th>
+                                                    <th className="py-3 border-0 text-end px-4">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {stats.recentBooks.map((borrow, index) => (
+                                                    <tr key={borrow._id} className="dash-book-entry" style={{ animationDelay: `${0.6 + index * 0.15}s` }}>
+                                                        <td className="px-4 py-3">
+                                                            <div className="d-flex align-items-center gap-3">
+                                                                <img
+                                                                    src={borrow.book?.coverImage || 'https://placehold.co/40x60?text=No+Cover'}
+                                                                    alt=""
+                                                                    style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '6px' }}
+                                                                />
+                                                                <div>
+                                                                    <div className="fw-bold">{borrow.book?.title || 'Unknown Book'}</div>
+                                                                    <small className="text-muted">{borrow.book?.author || 'Unknown Author'}</small>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>{new Date(borrow.borrowDate).toLocaleDateString()}</td>
+                                                        <td>{new Date(borrow.dueDate).toLocaleDateString()}</td>
+                                                        <td className="text-end px-4">
+                                                            <Badge bg={borrow.status === 'overdue' ? 'danger' : 'success'} pill className="dash-status-glow">
+                                                                {borrow.status}
+                                                            </Badge>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </Table>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-5">
+                                        <p className="text-muted mb-3">No active borrows found.</p>
+                                        <Link to="/books" className="btn btn-outline-primary btn-sm px-4">Browse Books</Link>
+                                    </div>
+                                )}
+                            </Card.Body>
+                        </Card>
+
+                        {/* AI Recommendations */}
+                        <Card className="border-0 shadow-sm mt-4" style={{ borderRadius: 'var(--radius-xl)' }}>
+                            <Card.Header className="bg-transparent border-0 p-4 d-flex justify-content-between align-items-center">
+                                <h5 className="mb-0 fw-bold d-flex align-items-center gap-2">
+                                    <span style={{ fontSize: '1.2rem' }}>✨</span> AI Recommended for You
+                                </h5>
+                            </Card.Header>
+                            <Card.Body className="px-4 pb-4 pt-0">
+                                {recommendations ? (
+                                    <div dangerouslySetInnerHTML={{ __html: recommendations }} style={{ lineHeight: '1.8' }} className="text-secondary" />
+                                ) : (
+                                    <div className="d-flex align-items-center gap-2 text-muted">
+                                        <Spinner size="sm" animation="border" /> <span>Virtual Librarian is analyzing your reading history...</span>
+                                    </div>
+                                )}
+                            </Card.Body>
+                        </Card>
+
+                        {/* Wishlist */}
+                        {stats.wishlist && stats.wishlist.length > 0 && (
+                            <Card className="border-0 shadow-sm mt-4" style={{ borderRadius: 'var(--radius-xl)' }}>
+                                <Card.Header className="bg-transparent border-0 p-4 d-flex justify-content-between align-items-center">
+                                    <h5 className="mb-0 fw-bold d-flex align-items-center gap-2">
+                                        <span style={{ fontSize: '1.2rem' }}>⭐</span> My Wishlist
+                                    </h5>
+                                </Card.Header>
+                                <Card.Body className="p-0">
+                                    <div className="table-responsive">
+                                        <Table hover className="align-middle border-0 mb-0">
+                                            <tbody>
+                                                {stats.wishlist.map(book => (
+                                                    <tr key={book._id}>
+                                                        <td className="px-4 py-3">
+                                                            <div className="d-flex align-items-center gap-3">
+                                                                <img
+                                                                    src={book.coverImage || 'https://placehold.co/40x60?text=No+Cover'}
+                                                                    alt=""
+                                                                    style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '6px' }}
+                                                                />
+                                                                <div>
+                                                                    <div className="fw-bold"><Link to={`/book/${book._id}`} className="text-decoration-none text-dark">{book.title}</Link></div>
+                                                                    <small className="text-muted">{book.author}</small>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </Table>
+                                    </div>
+                                </Card.Body>
+                            </Card>
+                        )}
+                    </Col>
+
+                    {/* Quick Profile */}
+                    <Col lg={4}>
+                        <Card className="border-0 shadow-sm h-100 dash-profile-card" style={{ borderRadius: 'var(--radius-xl)', animationDelay: '0.8s' }}>
+                            <Card.Body className="p-4 text-center">
+                                <div className="mb-4 d-inline-block p-1 bg-light rounded-circle shadow-sm">
+                                    <div
+                                        style={{
+                                            width: '100px',
+                                            height: '100px',
+                                            background: 'var(--gradient-primary)',
+                                            borderRadius: '50%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: 'white',
+                                            fontSize: '2.5rem',
+                                            fontWeight: 700
+                                        }}
+                                    >
+                                        {user?.name.charAt(0)}
+                                    </div>
+                                </div>
+                                <h4 className="fw-bold mb-1">{user?.name}</h4>
+                                <p className="text-muted small mb-4">{user?.email}</p>
+
+                                <Card className="bg-light border-0 mb-4" style={{ borderRadius: 'var(--radius-lg)' }}>
+                                    <Card.Body className="p-3 text-start">
+                                        <div className="d-flex justify-content-between mb-2">
+                                            <small className="text-muted">Membership</small>
+                                            <Badge bg="success" pill className="shimmer-badge">Active</Badge>
+                                        </div>
+                                        <div className="d-flex justify-content-between">
+                                            <small className="text-muted">Member Since</small>
+                                            <small className="fw-bold">{new Date(user?.createdAt).toLocaleDateString()}</small>
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+
+                                <Link to="/profile" className="btn btn-primary w-100 mb-2 dash-btn-ripple">
+                                    <FiUser className="me-2" /> Edit Profile
+                                </Link>
+                                {stats.pendingFines > 0 && (
+                                    <Link to="/payment" className="btn btn-danger w-100 dash-btn-ripple">
+                                        <FiDollarSign className="me-2" /> Pay Fines (₹{stats.pendingFines})
+                                    </Link>
+                                )}
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            </Container>
+        </div>
+    );
+};
+
+export default Dashboard;

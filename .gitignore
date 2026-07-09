@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+build/
+dist/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backend specific
+**/receipts/*.pdf
+backend/public/uploads/*
+!backend/public/uploads/sample.pdf
+!backend/public/uploads/resources/
+backend/public/uploads/resources/*
+!backend/public/uploads/resources/.gitkeep
+!backend/public/uploads/books/
+backend/public/uploads/books/*
+!backend/public/uploads/books/.gitkeep
+**/logs/
+
+# Frontend specific
+.eslintcache
+
+# Testing
+coverage/
+
+# Misc
+*.pem
+.vercel

@@ -1,0 +1,9 @@
+{
+  "ignore": [
+    "receipts/*",
+    "public/*",
+    "node_modules/*",
+    "*.test.js",
+    "tests/*"
+  ]
+}
