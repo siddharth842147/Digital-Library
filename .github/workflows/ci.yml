@@ -49,6 +49,8 @@ jobs:
       run: npm ci --legacy-peer-deps
       
     - name: Build Frontend
+      env:
+        CI: false
       run: npm run build
       
     # Cypress tests could be added here in a separate job

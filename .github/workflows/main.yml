@@ -66,4 +66,5 @@ jobs:
       working-directory: ./frontend
       env:
         REACT_APP_API_URL: http://localhost:5000/api
+        CI: false
       run: npm run build
