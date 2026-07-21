@@ -292,7 +292,10 @@ const Books = () => {
                                 <Col md={4}>
                                     <Form.Label className="small fw-bold">CATEGORY</Form.Label>
                                     <Form.Select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
-                                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                        {categories.map(c => {
+                                            const cStr = typeof c === 'object' && c ? (c.en || c.hi || Object.values(c)[0]) : c;
+                                            return <option key={cStr} value={cStr}>{cStr}</option>;
+                                        })}
                                     </Form.Select>
                                 </Col>
                                 <Col md={6}>

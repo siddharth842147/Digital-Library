@@ -353,8 +353,11 @@ const ManageBooks = () => {
                                 </Col>
                                 <Col md={4}>
                                     <Form.Select>
-                                        <option>All Categories</option>
-                                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                         <option>All Categories</option>
+                                         {categories.map(c => {
+                                             const cStr = typeof c === 'object' && c ? (c.en || c.hi || Object.values(c)[0]) : c;
+                                             return <option key={cStr} value={cStr}>{cStr}</option>;
+                                         })}
                                     </Form.Select>
                                 </Col>
                             </Row>
@@ -467,7 +470,10 @@ const ManageBooks = () => {
                                             value={formData.category}
                                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                         >
-                                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                             {categories.map(c => {
+                                                 const cStr = typeof c === 'object' && c ? (c.en || c.hi || Object.values(c)[0]) : c;
+                                                 return <option key={cStr} value={cStr}>{cStr}</option>;
+                                             })}
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
