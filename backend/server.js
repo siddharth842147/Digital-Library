@@ -132,7 +132,14 @@ const { doubleCsrfProtection, generateToken } = doubleCsrf({
     size: 64,
     ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
 });
-app.use(doubleCsrfProtection);
+
+// Skip CSRF protection if Bearer Token is used (since Bearer auth is immune to CSRF)
+app.use((req, res, next) => {
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        return next();
+    }
+    doubleCsrfProtection(req, res, next);
+});
 
 // CSRF Token Route
 app.get('/api/csrf-token', (req, res) => {

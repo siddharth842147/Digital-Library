@@ -395,6 +395,7 @@ const sendTokenResponse = async (user, statusCode, res, message) => {
         .json({
             success: true,
             message,
+            token,
             user
         });
 };
@@ -440,6 +441,7 @@ exports.refreshToken = async (req, res) => {
             })
             .json({
                 success: true,
+                token: newAccessToken,
                 message: 'Token refreshed successfully'
             });
     } catch (error) {

@@ -39,6 +39,10 @@ export const AuthProvider = ({ children }) => {
     const loadUser = useCallback(async () => {
         try {
             await fetchCsrfToken();
+            const token = localStorage.getItem('token');
+            if (token) {
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            }
             const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/me`);
             setUser(res.data.data);
         } catch (error) {
@@ -60,9 +64,17 @@ export const AuthProvider = ({ children }) => {
                 if (error.response?.status === 401 && originalRequest && !originalRequest._retry && originalRequest.url !== `${apiUrl}/auth/login` && originalRequest.url !== `${apiUrl}/auth/refresh`) {
                     originalRequest._retry = true;
                     try {
-                        await axios.post(`${apiUrl}/auth/refresh`);
+                        const refreshRes = await axios.post(`${apiUrl}/auth/refresh`);
+                        const newToken = refreshRes.data.token;
+                        if (newToken) {
+                            localStorage.setItem('token', newToken);
+                            axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+                            originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+                        }
                         return axios(originalRequest);
                     } catch (refreshError) {
+                        localStorage.removeItem('token');
+                        delete axios.defaults.headers.common['Authorization'];
                         setUser(null);
                         // Show modal if they were previously authenticated
                         setShowSessionExpired(true);
@@ -86,7 +98,11 @@ export const AuthProvider = ({ children }) => {
                 password
             });
 
-            const { user } = res.data;
+            const { user, token } = res.data;
+            if (token) {
+                localStorage.setItem('token', token);
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            }
             setUser(user);
 
             toast.success('Login successful!');
@@ -103,7 +119,11 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await axios.post(`${process.env.REACT_APP_API_URL}/auth/register`, userData);
             // Backend now returns token and user immediately (OTP disabled)
-            const { user } = res.data;
+            const { user, token } = res.data;
+            if (token) {
+                localStorage.setItem('token', token);
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            }
             setUser(user);
             toast.success('Registration successful!');
             return { success: true, user };
@@ -118,7 +138,11 @@ export const AuthProvider = ({ children }) => {
     const verifyOtp = async (userId, otp) => {
         try {
             const res = await axios.post(`${process.env.REACT_APP_API_URL}/auth/verify-otp`, { userId, otp });
-            const { user } = res.data;
+            const { user, token } = res.data;
+            if (token) {
+                localStorage.setItem('token', token);
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            }
             setUser(user);
             toast.success('OTP verified! Registration complete.');
             return { success: true, user };
@@ -136,6 +160,8 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
             console.error('Logout error:', err);
         }
+        localStorage.removeItem('token');
+        delete axios.defaults.headers.common['Authorization'];
         setUser(null);
         toast.info('Logged out successfully');
     };
