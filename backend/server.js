@@ -60,10 +60,25 @@ if (useSentry) {
   app.use(Sentry.Handlers.tracingHandler());
 }
 
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:3000'
+].filter(Boolean);
+
+const checkOrigin = (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const isAllowed = allowedOrigins.some(o => o === origin) || origin.endsWith('.vercel.app');
+    if (isAllowed) {
+        callback(null, true);
+    } else {
+        callback(new Error('Not allowed by CORS'));
+    }
+};
+
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+        origin: checkOrigin,
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -102,7 +117,7 @@ app.use(compression());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000', // Explicitly allow frontend origin
+  origin: checkOrigin,
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token']
 }));
