@@ -209,7 +209,7 @@ const Books = () => {
                                         <div style={{ position: 'relative', overflow: 'hidden' }}>
                                             <Card.Img
                                                 variant="top"
-                                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api').replace('/api', '')}${book.coverImage}`}
+                                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api').replace('/api', '')}${book.coverImage}`}
                                                 alt={book.title}
                                                 style={{ height: '300px', objectFit: 'cover' }}
                                             />

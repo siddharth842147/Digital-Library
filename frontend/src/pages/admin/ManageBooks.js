@@ -390,7 +390,7 @@ const ManageBooks = () => {
                                                 <td className="px-4 py-3">
                                                     <div className="d-flex align-items-center gap-3">
                                                         <img
-                                                            src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api').replace('/api', '')}${book.coverImage}`}
+                                                            src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api').replace('/api', '')}${book.coverImage}`}
                                                             alt=""
                                                             style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
                                                         />

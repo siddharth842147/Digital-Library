@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
     const fetchCsrfToken = async () => {
         try {
-            const res = await axios.get(`${process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api'}/csrf-token`);
+            const res = await axios.get(`${process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api'}/csrf-token`);
             axios.defaults.headers.common['x-csrf-token'] = res.data.csrfToken;
         } catch (error) {
             console.error('Failed to fetch CSRF token', error);
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
             if (token) {
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             }
-            const res = await axios.get(`${process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api'}/auth/me`);
+            const res = await axios.get(`${process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api'}/auth/me`);
             setUser(res.data.data);
         } catch (error) {
             console.error('Error loading user:', error);
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
             (response) => response,
             async (error) => {
                 const originalRequest = error.config;
-                const apiUrl = process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api';
+                const apiUrl = process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api';
                 if (error.response?.status === 401 && originalRequest && !originalRequest._retry && originalRequest.url !== `${apiUrl}/auth/login` && originalRequest.url !== `${apiUrl}/auth/refresh`) {
                     originalRequest._retry = true;
                     try {
@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }) => {
     // Login
     const login = async (email, password) => {
         try {
-            const res = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login`, {
+            const res = await axios.post(`${process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api'}/auth/login`, {
                 email,
                 password
             });
@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }) => {
     // Register
     const register = async (userData) => {
         try {
-            const res = await axios.post(`${process.env.REACT_APP_API_URL}/auth/register`, userData);
+            const res = await axios.post(`${process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api'}/auth/register`, userData);
             // Backend now returns token and user immediately (OTP disabled)
             const { user, token } = res.data;
             if (token) {
@@ -137,7 +137,7 @@ export const AuthProvider = ({ children }) => {
     // Verify OTP for registration
     const verifyOtp = async (userId, otp) => {
         try {
-            const res = await axios.post(`${process.env.REACT_APP_API_URL}/auth/verify-otp`, { userId, otp });
+            const res = await axios.post(`${process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api'}/auth/verify-otp`, { userId, otp });
             const { user, token } = res.data;
             if (token) {
                 localStorage.setItem('token', token);
@@ -156,7 +156,7 @@ export const AuthProvider = ({ children }) => {
     // Logout
     const logout = async () => {
         try {
-            await axios.post(`${process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api'}/auth/logout`);
+            await axios.post(`${process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api'}/auth/logout`);
         } catch (err) {
             console.error('Logout error:', err);
         }
@@ -169,7 +169,7 @@ export const AuthProvider = ({ children }) => {
     // Update user profile
     const updateProfile = async (userData) => {
         try {
-            const res = await axios.put(`${process.env.REACT_APP_API_URL}/auth/update-details`, userData);
+            const res = await axios.put(`${process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api'}/auth/update-details`, userData);
             setUser(res.data.data);
             toast.success('Profile updated successfully!');
             return { success: true };
@@ -183,7 +183,7 @@ export const AuthProvider = ({ children }) => {
     // Update password
     const updatePassword = async (currentPassword, newPassword) => {
         try {
-            await axios.put(`${process.env.REACT_APP_API_URL}/auth/update-password`, {
+            await axios.put(`${process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api'}/auth/update-password`, {
                 currentPassword,
                 newPassword
             });
@@ -199,7 +199,7 @@ export const AuthProvider = ({ children }) => {
     // Forgot password
     const forgotPassword = async (email) => {
         try {
-            await axios.post(`${process.env.REACT_APP_API_URL}/auth/forgot-password`, { email });
+            await axios.post(`${process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api'}/auth/forgot-password`, { email });
             toast.success('Password reset email sent!');
             return { success: true };
         } catch (error) {

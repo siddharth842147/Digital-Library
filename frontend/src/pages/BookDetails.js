@@ -171,7 +171,7 @@ const BookDetails = () => {
                     <Row className="g-0">
                         <Col lg={4} className="position-relative">
                             <img
-                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api').replace('/api', '')}${book.coverImage}`}
+                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api').replace('/api', '')}${book.coverImage}`}
                                 alt={book.title}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: '500px' }}
                             />

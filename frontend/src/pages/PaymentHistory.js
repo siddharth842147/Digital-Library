@@ -43,7 +43,7 @@ const PaymentHistory = () => {
     const handleDownload = async (paymentId) => {
         try {
             const response = await downloadReceipt(paymentId);
-            window.open((process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api').replace('/api', '') + response.data.receiptUrl, '_blank');
+            window.open((process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api').replace('/api', '') + response.data.receiptUrl, '_blank');
         } catch (error) {
             toast.error('Failed to download receipt');
         }

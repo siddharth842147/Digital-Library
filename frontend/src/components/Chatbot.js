@@ -33,7 +33,7 @@ const Chatbot = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.post(`${process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api'}/chatbot/query`, {
+            const response = await axios.post(`${process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api'}/chatbot/query`, {
                 message: userMessage
             }, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {}
