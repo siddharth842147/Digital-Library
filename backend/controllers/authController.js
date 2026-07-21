@@ -375,10 +375,11 @@ const sendTokenResponse = async (user, statusCode, res, message) => {
     // Remove password from output
     user.password = undefined;
 
+    const isProduction = process.env.NODE_ENV === 'production';
     const options = {
         httpOnly: true,
-        secure: false, // Set to false for local HTTP development across ports
-        sameSite: 'lax',
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
     };
 
     res
@@ -425,10 +426,11 @@ exports.refreshToken = async (req, res) => {
         }
 
         const newAccessToken = refreshToken.user.getSignedJwtToken();
+        const isProduction = process.env.NODE_ENV === 'production';
         const options = {
             httpOnly: true,
-            secure: false, // Set to false for local HTTP development
-            sameSite: 'lax',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
         };
 
         return res.status(200)
@@ -460,10 +462,11 @@ exports.logout = async (req, res) => {
         }
     }
 
+    const isProduction = process.env.NODE_ENV === 'production';
     const options = {
         httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
     };
 
     res.cookie('accessToken', 'none', {

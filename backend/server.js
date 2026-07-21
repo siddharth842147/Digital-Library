@@ -119,13 +119,14 @@ app.use(xss());
 app.use(cookieParser());
 
 // CSRF Protection
+const isProduction = process.env.NODE_ENV === 'production';
 const { doubleCsrfProtection, generateToken } = doubleCsrf({
     getSecret: () => process.env.CSRF_SECRET || 'fallback_secret_key_change_in_prod',
     cookieName: 'x-csrf-token',
     cookieOptions: {
-        sameSite: 'lax', 
+        sameSite: isProduction ? 'none' : 'lax', 
         path: '/',
-        secure: false, // Set to false so it works over HTTP in local development
+        secure: isProduction,
         httpOnly: true,
     },
     size: 64,
