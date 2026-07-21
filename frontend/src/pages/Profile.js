@@ -8,6 +8,7 @@ const Profile = () => {
     const { user, updateProfile } = useAuth();
     const [editing, setEditing] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [validated, setValidated] = useState(false);
     const fileInputRef = useRef(null);
 
     const [formData, setFormData] = useState({
@@ -42,6 +43,13 @@ const Profile = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const form = e.currentTarget;
+        if (form.checkValidity() === false) {
+            e.stopPropagation();
+            setValidated(true);
+            return;
+        }
+        setValidated(true);
         try {
             setLoading(true);
             const result = await updateProfile(formData);
@@ -147,7 +155,7 @@ const Profile = () => {
                                 )}
                             </Card.Header>
                             <Card.Body className="p-4 pt-2">
-                                <Form onSubmit={handleSubmit}>
+                                <Form noValidate validated={validated} onSubmit={handleSubmit}>
                                     <Row className="g-4">
                                         {/* Basic Info */}
                                         <Col md={6}>
@@ -173,14 +181,19 @@ const Profile = () => {
                                                 <div className="position-relative">
                                                     <FiPhone className="position-absolute translate-middle-y top-50 ms-3 text-muted" />
                                                     <Form.Control
-                                                        type="text"
+                                                        type="tel"
                                                         name="phone"
+                                                        pattern="[0-9]{10}"
+                                                        maxLength={10}
                                                         value={formData.phone}
                                                         onChange={handleChange}
                                                         disabled={!editing}
                                                         style={{ paddingLeft: '2.75rem', borderRadius: 'var(--radius-md)', height: '50px' }}
                                                         placeholder="Enter 10-digit phone number"
                                                     />
+                                                    <Form.Control.Feedback type="invalid" style={{ paddingLeft: '2.75rem' }}>
+                                                        Please provide a valid 10-digit phone number.
+                                                    </Form.Control.Feedback>
                                                 </div>
                                             </Form.Group>
                                         </Col>

@@ -11,8 +11,8 @@ const ManageUsers = () => {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
-    const [currentUser, setCurrentUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [validated, setValidated] = useState(false);
 
     const isAdmin = loggedInUser?.role === 'admin';
 
@@ -49,6 +49,7 @@ const ManageUsers = () => {
 
     const handleOpenCreate = () => {
         setIsEdit(false);
+        setValidated(false);
         setFormData({
             name: '',
             email: '',
@@ -63,6 +64,7 @@ const ManageUsers = () => {
 
     const handleOpenEdit = (user) => {
         setIsEdit(true);
+        setValidated(false);
         setCurrentUser(user);
         setFormData({
             name: user.name,
@@ -96,6 +98,13 @@ const ManageUsers = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const form = e.currentTarget;
+        if (form.checkValidity() === false) {
+            e.stopPropagation();
+            setValidated(true);
+            return;
+        }
+        setValidated(true);
         try {
             if (isEdit) {
                 await updateUser(currentUser._id, formData);
@@ -234,7 +243,7 @@ const ManageUsers = () => {
                     <Modal.Header closeButton className="border-0">
                         <Modal.Title className="fw-bold">{isEdit ? 'Update Member Access' : 'Register New Member'}</Modal.Title>
                     </Modal.Header>
-                    <Form onSubmit={handleSubmit}>
+                    <Form noValidate validated={validated} onSubmit={handleSubmit}>
                         <Modal.Body className="px-4 pb-4">
                             {!isEdit && (
                                 <>
@@ -252,10 +261,14 @@ const ManageUsers = () => {
                                         <Form.Control
                                             required
                                             type="email"
+                                            pattern="[a-zA-Z0-9._%+-]+@gmail\.com"
                                             value={formData.email}
                                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                            placeholder="john@example.com"
+                                            placeholder="john@gmail.com"
                                         />
+                                        <Form.Control.Feedback type="invalid">
+                                            Please provide a valid Gmail address (e.g., user@gmail.com).
+                                        </Form.Control.Feedback>
                                     </Form.Group>
                                     <Form.Group className="mb-3">
                                         <Form.Label className="small fw-bold text-muted uppercase">Temporary Password</Form.Label>
@@ -264,11 +277,16 @@ const ManageUsers = () => {
                                             <Form.Control
                                                 required
                                                 type="password"
+                                                minLength={6}
+                                                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}"
                                                 value={formData.password}
                                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                                 placeholder="Enter secure password"
                                             />
                                         </InputGroup>
+                                        <Form.Control.Feedback type="invalid">
+                                            Password must be at least 6 characters and contain at least one uppercase letter, one lowercase letter, and one number.
+                                        </Form.Control.Feedback>
                                         <Form.Text className="text-muted">A confirmation email will be sent to the user.</Form.Text>
                                     </Form.Group>
                                     <hr className="my-4" />
@@ -312,10 +330,16 @@ const ManageUsers = () => {
                                 <InputGroup className="mb-2">
                                     <InputGroup.Text><FiPhone /></InputGroup.Text>
                                     <Form.Control
+                                        type="tel"
+                                        pattern="[0-9]{10}"
+                                        maxLength={10}
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                        placeholder="Phone number"
+                                        placeholder="Phone number (10 digits)"
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        Please provide a valid 10-digit phone number.
+                                    </Form.Control.Feedback>
                                 </InputGroup>
                                 <InputGroup>
                                     <InputGroup.Text><FiMapPin /></InputGroup.Text>

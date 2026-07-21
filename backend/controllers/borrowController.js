@@ -549,20 +549,35 @@ exports.getOverdueBooks = async (req, res) => {
 // @access  Private (Admin)
 exports.updateOverdueStatus = async (req, res) => {
     try {
-        const result = await Borrow.updateMany(
-            {
-                dueDate: { $lt: new Date() },
-                status: 'borrowed',
-                returnDate: null
-            },
-            {
-                $set: { status: 'overdue' }
+        const newlyOverdue = await Borrow.find({
+            dueDate: { $lt: new Date() },
+            status: 'borrowed',
+            returnDate: null
+        }).populate('user').populate('book');
+
+        let updatedCount = 0;
+        for (const borrow of newlyOverdue) {
+            borrow.status = 'overdue';
+            await borrow.save();
+            updatedCount++;
+
+            if (borrow.user && borrow.user.email) {
+                const bookTitle = borrow.book ? borrow.book.title : 'Deleted Book';
+                try {
+                    await sendEmail({
+                        email: borrow.user.email,
+                        subject: 'Library Alert: Book Overdue 🚨',
+                        message: `Hello ${borrow.user.name},\n\nYour borrowed book "${bookTitle}" was due for return on ${new Date(borrow.dueDate).toLocaleDateString()}.\n\nIt is now marked as OVERDUE, and you will start accruing fines of ₹10 per day (excluding Sundays/holidays).\n\nPlease return the book immediately to avoid further fines.\n\nBest regards,\nLibrary Team`
+                    });
+                } catch (emailError) {
+                    console.error(`Failed to send overdue email to ${borrow.user.email}:`, emailError.message);
+                }
             }
-        );
+        }
 
         res.status(200).json({
             success: true,
-            message: `Updated ${result.modifiedCount} records to overdue status`
+            message: `Updated ${updatedCount} records to overdue status and sent notifications`
         });
     } catch (error) {
         res.status(500).json({

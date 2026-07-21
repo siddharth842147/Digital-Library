@@ -44,8 +44,16 @@ const Register = () => {
             return;
         }
         
-        if (formData.password.length < 6) {
-            setPasswordError('Password must be at least 6 characters');
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+        if (!emailRegex.test(formData.email)) {
+            setPasswordError('Please provide a valid Gmail address');
+            setValidated(true);
+            return;
+        }
+
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+        if (!passwordRegex.test(formData.password)) {
+            setPasswordError('Password must be at least 6 characters and contain at least one uppercase letter, one lowercase letter, and one number.');
             setValidated(true);
             return;
         }
@@ -107,13 +115,14 @@ const Register = () => {
                                                 name="email"
                                                 value={formData.email}
                                                 onChange={handleChange}
-                                                placeholder="Enter your email"
+                                                placeholder="Enter your Gmail address"
                                                 required
+                                                pattern="[a-zA-Z0-9._%+-]+@gmail\.com"
                                                 autoComplete="email"
                                                 className="form-control"
                                             />
                                             <Form.Control.Feedback type="invalid">
-                                                Please provide a valid email address.
+                                                Please provide a valid Gmail address (e.g., user@gmail.com).
                                             </Form.Control.Feedback>
                                         </Form.Group>
                                     </Col>
@@ -133,12 +142,13 @@ const Register = () => {
                                                 placeholder="Create password"
                                                 required
                                                 minLength={6}
+                                                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}"
                                                 autoComplete="new-password"
                                                 className="form-control"
                                                 isInvalid={!!passwordError}
                                             />
                                             <Form.Control.Feedback type="invalid">
-                                                {passwordError || 'Password must be at least 6 characters.'}
+                                                {passwordError || 'Password must be at least 6 characters and contain at least one uppercase letter, one lowercase letter, and one number.'}
                                             </Form.Control.Feedback>
                                         </Form.Group>
                                     </Col>

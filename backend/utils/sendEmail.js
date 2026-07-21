@@ -33,15 +33,32 @@ const sendEmail = async (options) => {
         to: toRecipients,
         subject: options.subject,
         textContent: options.message,
-        htmlContent: options.html || options.message.replace(/\n/g, '<br>')
+        htmlContent: options.html || (options.message ? options.message.replace(/\n/g, '<br>') : '')
     };
 
     if (options.attachments && options.attachments.length > 0) {
-        payload.attachment = options.attachments.map(att => ({
-            name: att.filename,
-            content: att.content ? Buffer.from(att.content).toString('base64') : undefined,
-            url: att.path // Brevo uses 'url' or base64 'content', 'path' from nodemailer needs mapping
-        }));
+        const fs = require('fs');
+        payload.attachment = options.attachments.map(att => {
+            const mapped = { name: att.filename };
+            if (att.content) {
+                mapped.content = Buffer.from(att.content).toString('base64');
+            } else if (att.path) {
+                if (att.path.startsWith('http://') || att.path.startsWith('https://')) {
+                    mapped.url = att.path;
+                } else {
+                    try {
+                        if (fs.existsSync(att.path)) {
+                            mapped.content = fs.readFileSync(att.path).toString('base64');
+                        } else {
+                            console.error(`Attachment path does not exist: ${att.path}`);
+                        }
+                    } catch (readError) {
+                        console.error(`Failed to read attachment file at ${att.path}:`, readError.message);
+                    }
+                }
+            }
+            return mapped;
+        }).filter(att => att.content || att.url);
     }
 
     try {
