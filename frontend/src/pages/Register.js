@@ -44,7 +44,7 @@ const Register = () => {
             return;
         }
         
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+        const emailRegex = /^[a-zA-Z0-9._%+\-]+@gmail\.com$/;
         if (!emailRegex.test(formData.email)) {
             setPasswordError('Please provide a valid Gmail address');
             setValidated(true);
@@ -117,7 +117,7 @@ const Register = () => {
                                                 onChange={handleChange}
                                                 placeholder="Enter your Gmail address"
                                                 required
-                                                pattern="[a-zA-Z0-9._%+-]+@gmail\.com"
+                                                pattern="[a-zA-Z0-9._%+\-]+@gmail\.com"
                                                 autoComplete="email"
                                                 className="form-control"
                                             />

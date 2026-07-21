@@ -261,7 +261,7 @@ const ManageUsers = () => {
                                         <Form.Control
                                             required
                                             type="email"
-                                            pattern="[a-zA-Z0-9._%+-]+@gmail\.com"
+                                            pattern="[a-zA-Z0-9._%+\-]+@gmail\.com"
                                             value={formData.email}
                                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                             placeholder="john@gmail.com"
