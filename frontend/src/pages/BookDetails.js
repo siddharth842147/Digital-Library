@@ -171,7 +171,7 @@ const BookDetails = () => {
                     <Row className="g-0">
                         <Col lg={4} className="position-relative">
                             <img
-                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${process.env.REACT_APP_API_URL.replace('/api', '')}${book.coverImage}`}
+                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api').replace('/api', '')}${book.coverImage}`}
                                 alt={book.title}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: '500px' }}
                             />
@@ -186,16 +186,22 @@ const BookDetails = () => {
 
                         <Col lg={8}>
                             <Card.Body className="p-5">
-                                <Badge bg="primary" className="mb-3 px-3 py-2 fw-medium">{book.category}</Badge>
-                                <h1 className="display-5 fw-bold mb-2" style={{ color: 'var(--text-primary)' }}>{book.title}</h1>
-                                <p className="h4 text-muted mb-4 fw-normal">by {book.author}</p>
+                                <Badge bg="primary" className="mb-3 px-3 py-2 fw-medium">
+                                    {typeof book.category === 'object' && book.category ? (book.category.en || book.category.hi || Object.values(book.category)[0]) : book.category}
+                                </Badge>
+                                <h1 className="display-5 fw-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                                    {typeof book.title === 'object' && book.title ? (book.title.en || book.title.hi || Object.values(book.title)[0]) : book.title}
+                                </h1>
+                                <p className="h4 text-muted mb-4 fw-normal">
+                                    by {typeof book.author === 'object' && book.author ? (book.author.en || book.author.hi || Object.values(book.author)[0]) : book.author}
+                                </p>
 
                                 <div className="mb-5">
                                     <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
                                         <FiBook className="text-primary" /> Description
                                     </h5>
                                     <p className="text-secondary leading-relaxed" style={{ fontSize: '1.1rem' }}>
-                                        {book.description || 'No description available for this book.'}
+                                        {typeof book.description === 'object' && book.description ? (book.description.en || book.description.hi || Object.values(book.description)[0]) : (book.description || 'No description available for this book.')}
                                     </p>
                                 </div>
 
@@ -214,7 +220,7 @@ const BookDetails = () => {
                                             <div className="p-3 bg-light rounded-circle text-primary"><FiLayers /></div>
                                             <div>
                                                 <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>Published By</small>
-                                                <span className="fw-bold">{book.publisher}</span>
+                                                <span className="fw-bold">{typeof book.publisher === 'object' && book.publisher ? (book.publisher.en || book.publisher.hi || Object.values(book.publisher)[0]) : book.publisher}</span>
                                             </div>
                                         </div>
                                     </Col>

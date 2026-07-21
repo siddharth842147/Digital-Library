@@ -80,7 +80,7 @@ function AppContent() {
     const { showSessionExpired, setShowSessionExpired } = useAuth();
 
     React.useEffect(() => {
-        const socket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000', {
+        const socket = io((process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api').replace('/api', ''), {
             transports: ['websocket']
         });
         

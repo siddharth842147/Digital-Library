@@ -26,14 +26,22 @@ exports.getBooks = async (req, res) => {
         if (search) {
             query.$or = [
                 { title: { $regex: search, $options: 'i' } },
+                { 'title.en': { $regex: search, $options: 'i' } },
+                { 'title.hi': { $regex: search, $options: 'i' } },
                 { author: { $regex: search, $options: 'i' } },
+                { 'author.en': { $regex: search, $options: 'i' } },
+                { 'author.hi': { $regex: search, $options: 'i' } },
                 { isbn: { $regex: search, $options: 'i' } }
             ];
         }
 
         // Filter by category
         if (category && category !== 'all') {
-            query.category = category;
+            query.$or = [
+                { category: category },
+                { 'category.en': category },
+                { 'category.hi': category }
+            ];
         }
 
         // Filter by status
@@ -225,10 +233,19 @@ exports.deleteBook = async (req, res) => {
 exports.getCategories = async (req, res) => {
     try {
         const categories = await Book.distinct('category');
+        const normalized = categories.map(cat => {
+            if (!cat) return '';
+            if (typeof cat === 'object') {
+                return cat.en || cat.hi || Object.values(cat)[0] || '';
+            }
+            return String(cat);
+        }).filter(Boolean);
+
+        const uniqueCategories = [...new Set(normalized)];
 
         res.status(200).json({
             success: true,
-            data: categories
+            data: uniqueCategories
         });
     } catch (error) {
         res.status(500).json({
@@ -248,6 +265,19 @@ exports.getBookStats = async (req, res) => {
         const unavailableBooks = await Book.countDocuments({ status: 'unavailable' });
 
         const categoryStats = await Book.aggregate([
+            {
+                $project: {
+                    category: {
+                        $cond: {
+                            if: { $eq: [{ $type: '$category' }, 'object'] },
+                            then: { $ifNull: ['$category.en', '$category.hi'] },
+                            else: '$category'
+                        }
+                    },
+                    totalCopies: 1,
+                    availableCopies: 1
+                }
+            },
             {
                 $group: {
                     _id: '$category',

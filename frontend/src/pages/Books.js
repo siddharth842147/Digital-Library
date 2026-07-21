@@ -179,9 +179,10 @@ const Books = () => {
                             className="form-control"
                         >
                             <option value="all">All Categories</option>
-                            {categories.map((cat) => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
+                            {categories.map((cat) => {
+                                const catStr = typeof cat === 'object' && cat ? (cat.en || cat.hi || Object.values(cat)[0]) : cat;
+                                return <option key={catStr} value={catStr}>{catStr}</option>;
+                            })}
                         </Form.Select>
                     </Col>
                 </Row>
@@ -208,7 +209,7 @@ const Books = () => {
                                         <div style={{ position: 'relative', overflow: 'hidden' }}>
                                             <Card.Img
                                                 variant="top"
-                                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${process.env.REACT_APP_API_URL.replace('/api', '')}${book.coverImage}`}
+                                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api').replace('/api', '')}${book.coverImage}`}
                                                 alt={book.title}
                                                 style={{ height: '300px', objectFit: 'cover' }}
                                             />
@@ -226,12 +227,14 @@ const Books = () => {
                                             </Badge>
                                         </div>
                                         <Card.Body>
-                                            <Badge bg="primary" className="mb-2">{book.category}</Badge>
+                                            <Badge bg="primary" className="mb-2">
+                                                {typeof book.category === 'object' && book.category ? (book.category.en || book.category.hi || Object.values(book.category)[0]) : book.category}
+                                            </Badge>
                                             <Card.Title style={{ fontSize: '1rem', fontWeight: 600 }}>
-                                                {book.title}
+                                                {typeof book.title === 'object' && book.title ? (book.title.en || book.title.hi || Object.values(book.title)[0]) : book.title}
                                             </Card.Title>
                                             <Card.Text style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                                                by {book.author}
+                                                by {typeof book.author === 'object' && book.author ? (book.author.en || book.author.hi || Object.values(book.author)[0]) : book.author}
                                             </Card.Text>
                                             <div className="d-flex justify-content-between align-items-center mt-3">
                                                 <small style={{ color: 'var(--text-secondary)' }}>

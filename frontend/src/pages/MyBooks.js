@@ -129,7 +129,7 @@ const MyBooks = () => {
                                     <Row className="g-0 h-100">
                                         <Col md={4}>
                                             <img
-                                                src={borrow.book?.coverImage?.startsWith('http') ? borrow.book.coverImage : (borrow.book?.coverImage ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${borrow.book.coverImage}` : 'https://placehold.co/400x600?text=No+Cover')}
+                                                src={borrow.book?.coverImage?.startsWith('http') ? borrow.book.coverImage : (borrow.book?.coverImage ? `${(process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api').replace('/api', '')}${borrow.book.coverImage}` : 'https://placehold.co/400x600?text=No+Cover')}
                                                 alt={borrow.book?.title || 'Unknown Book'}
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: '250px' }}
                                             />
@@ -138,7 +138,9 @@ const MyBooks = () => {
                                             <Card.Body className="d-flex flex-column p-4">
                                                 <div className="flex-grow-1">
                                                     <div className="d-flex justify-content-between align-items-center mb-3">
-                                                        <Badge bg="info">{borrow.book?.category || 'Unknown'}</Badge>
+                                                         <Badge bg="info">
+                                                             {typeof borrow.book?.category === 'object' && borrow.book.category ? (borrow.book.category.en || borrow.book.category.hi || Object.values(borrow.book.category)[0]) : (borrow.book?.category || 'Unknown')}
+                                                         </Badge>
                                                         <div className="d-flex gap-2">
                                                             {borrow.status === 'overdue' && (
                                                                 <Badge bg="danger" className="d-flex align-items-center gap-1 badge-glow-red">
@@ -149,8 +151,12 @@ const MyBooks = () => {
                                                             {borrow.status === 'return_pending' && <Badge bg="secondary">RETURN PENDING VERIFICATION</Badge>}
                                                         </div>
                                                     </div>
-                                                    <h4 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{borrow.book?.title || 'Unknown Book'}</h4>
-                                                    <p className="text-muted mb-4">by {borrow.book?.author || 'Unknown Author'}</p>
+                                                     <h4 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>
+                                                         {typeof borrow.book?.title === 'object' && borrow.book.title ? (borrow.book.title.en || borrow.book.title.hi || Object.values(borrow.book.title)[0]) : (borrow.book?.title || 'Unknown Book')}
+                                                     </h4>
+                                                     <p className="text-muted mb-4">
+                                                         by {typeof borrow.book?.author === 'object' && borrow.book.author ? (borrow.book.author.en || borrow.book.author.hi || Object.values(borrow.book.author)[0]) : (borrow.book?.author || 'Unknown Author')}
+                                                     </p>
 
                                                     <div className="mb-4">
                                                         <div className="d-flex align-items-center gap-2 mb-2 text-muted">

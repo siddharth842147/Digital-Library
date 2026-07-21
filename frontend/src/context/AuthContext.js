@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
     const fetchCsrfToken = async () => {
         try {
-            const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/csrf-token`);
+            const res = await axios.get(`${process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api'}/csrf-token`);
             axios.defaults.headers.common['x-csrf-token'] = res.data.csrfToken;
         } catch (error) {
             console.error('Failed to fetch CSRF token', error);
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
             if (token) {
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             }
-            const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/me`);
+            const res = await axios.get(`${process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api'}/auth/me`);
             setUser(res.data.data);
         } catch (error) {
             console.error('Error loading user:', error);
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
             (response) => response,
             async (error) => {
                 const originalRequest = error.config;
-                const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+                const apiUrl = process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api';
                 if (error.response?.status === 401 && originalRequest && !originalRequest._retry && originalRequest.url !== `${apiUrl}/auth/login` && originalRequest.url !== `${apiUrl}/auth/refresh`) {
                     originalRequest._retry = true;
                     try {
@@ -156,7 +156,7 @@ export const AuthProvider = ({ children }) => {
     // Logout
     const logout = async () => {
         try {
-            await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/logout`);
+            await axios.post(`${process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api'}/auth/logout`);
         } catch (err) {
             console.error('Logout error:', err);
         }

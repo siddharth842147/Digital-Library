@@ -104,7 +104,7 @@ const AcademicResources = () => {
         try {
             await axios.put(`${process.env.REACT_APP_API_URL}/resources/${id}/download`);
             // Open in new tab for download
-            window.open(`${process.env.REACT_APP_API_URL.replace('/api', '')}${fileUrl}`, '_blank');
+            window.open(`${(process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api').replace('/api', '')}${fileUrl}`, '_blank');
         } catch (error) {
             console.error('Download tracking failed', error);
         }

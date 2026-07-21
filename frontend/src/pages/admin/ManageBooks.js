@@ -387,13 +387,17 @@ const ManageBooks = () => {
                                                 <td className="px-4 py-3">
                                                     <div className="d-flex align-items-center gap-3">
                                                         <img
-                                                            src={book.coverImage?.startsWith('http') ? book.coverImage : `${process.env.REACT_APP_API_URL.replace('/api', '')}${book.coverImage}`}
+                                                            src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://jvit-backend.onrender.com/api').replace('/api', '')}${book.coverImage}`}
                                                             alt=""
                                                             style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
                                                         />
                                                         <div>
-                                                            <div className="fw-bold">{book.title}</div>
-                                                            <small className="text-muted">by {book.author}</small>
+                                                            <div className="fw-bold">
+                                                                {typeof book.title === 'object' && book.title ? (book.title.en || book.title.hi || Object.values(book.title)[0]) : book.title}
+                                                            </div>
+                                                            <small className="text-muted">
+                                                                by {typeof book.author === 'object' && book.author ? (book.author.en || book.author.hi || Object.values(book.author)[0]) : book.author}
+                                                            </small>
                                                         </div>
                                                     </div>
                                                 </td>
