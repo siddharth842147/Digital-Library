@@ -3,6 +3,7 @@ import { Container, Row, Col, Form, Button, Table, Badge, Spinner, Modal, Progre
 import { FiTrash2, FiPlus } from 'react-icons/fi';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { API_URL } from '../../config/api';
 
 const ManageResources = () => {
     const [resources, setResources] = useState([]);
@@ -34,7 +35,7 @@ const ManageResources = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const { data } = await axios.get(`${process.env.REACT_APP_API_URL}/resources`, {
+            const { data } = await axios.get(`${API_URL}/resources`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             setResources(data.data);
@@ -48,7 +49,7 @@ const ManageResources = () => {
     const handleStatusUpdate = async (id, newStatus) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`${process.env.REACT_APP_API_URL}/resources/${id}/status`,
+            await axios.put(`${API_URL}/resources/${id}/status`,
                 { status: newStatus },
                 { headers: { 'Authorization': `Bearer ${token}` } }
             );
@@ -93,7 +94,7 @@ const ManageResources = () => {
                 }
             };
 
-            await axios.post(`${process.env.REACT_APP_API_URL}/resources`, data, config);
+            await axios.post(`${API_URL}/resources`, data, config);
             toast.success('Resource uploaded successfully');
             setShowModal(false);
             fetchResources();
@@ -108,7 +109,7 @@ const ManageResources = () => {
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this resource?')) {
             try {
-                await axios.delete(`${process.env.REACT_APP_API_URL}/resources/${id}`, {
+                await axios.delete(`${API_URL}/resources/${id}`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 });
                 toast.success('Resource deleted');

@@ -4,6 +4,7 @@ import { FiDownload, FiSearch, FiUpload, FiThumbsUp, FiAlertTriangle } from 'rea
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config/api';
 
 const AcademicResources = () => {
     const { isAuthenticated, user } = useAuth();
@@ -43,7 +44,7 @@ const AcademicResources = () => {
                 config.headers = { Authorization: `Bearer ${token}` };
             }
 
-            const { data } = await axios.get(`${process.env.REACT_APP_API_URL}/resources?${queryParams}`, config);
+            const { data } = await axios.get(`${API_URL}/resources?${queryParams}`, config);
             
             // Sort by upvotes
             const sortedResources = data.data.sort((a, b) => {
@@ -83,7 +84,7 @@ const AcademicResources = () => {
                 }
             };
 
-            await axios.post(`${process.env.REACT_APP_API_URL}/resources`, data, config);
+            await axios.post(`${API_URL}/resources`, data, config);
 
             if (user.role === 'admin' || user.role === 'librarian') {
                 toast.success('Resource uploaded successfully!');
@@ -102,9 +103,9 @@ const AcademicResources = () => {
 
     const handleDownload = async (id, fileUrl, fileName) => {
         try {
-            await axios.put(`${process.env.REACT_APP_API_URL}/resources/${id}/download`);
+            await axios.put(`${API_URL}/resources/${id}/download`);
             // Open in new tab for download
-            window.open(`${(process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api').replace('/api', '')}${fileUrl}`, '_blank');
+            window.open(`${API_URL.replace('/api', '')}${fileUrl}`, '_blank');
         } catch (error) {
             console.error('Download tracking failed', error);
         }
@@ -117,7 +118,7 @@ const AcademicResources = () => {
         }
         try {
             const config = { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
-            const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/resources/${id}/upvote`, {}, config);
+            const { data } = await axios.post(`${API_URL}/resources/${id}/upvote`, {}, config);
             
             // Update resources state
             setResources(resources.map(res => {

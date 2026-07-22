@@ -7,6 +7,15 @@ import { borrowBook } from '../services/borrowService';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { API_URL } from '../config/api';
+
+const getLocalizedStr = (field, defaultVal = '') => {
+    if (!field) return defaultVal;
+    if (typeof field === 'object') {
+        return field.en || field.hi || Object.values(field)[0] || defaultVal;
+    }
+    return field;
+};
 
 const BookDetails = () => {
     const { id } = useParams();
@@ -36,7 +45,7 @@ const BookDetails = () => {
                 setBook(response.data);
                 
                 if (isAuthenticated) {
-                    const profileRes = await axios.get(`${process.env.REACT_APP_API_URL}/user/profile`, {
+                    const profileRes = await axios.get(`${API_URL}/user/profile`, {
                         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                     });
                     const wishlistIds = profileRes.data.data.wishlist.map(b => typeof b === 'object' ? b._id : b);
@@ -96,7 +105,7 @@ const BookDetails = () => {
 
         try {
             setBorrowing(true);
-            const response = await axios.post(`${process.env.REACT_APP_API_URL}/borrow/reserve/${book._id}`, {}, {
+            const response = await axios.post(`${API_URL}/borrow/reserve/${book._id}`, {}, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             toast.success(response.data.message || 'Added to waitlist!');
@@ -117,7 +126,7 @@ const BookDetails = () => {
             return;
         }
         try {
-            await axios.post(`${process.env.REACT_APP_API_URL}/user/wishlist/${book._id}`, {}, {
+            await axios.post(`${API_URL}/user/wishlist/${book._id}`, {}, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
             setInWishlist(!inWishlist);
@@ -135,7 +144,7 @@ const BookDetails = () => {
         }
         try {
             setSubmittingReview(true);
-            const response = await axios.post(`${process.env.REACT_APP_API_URL}/books/${book._id}/reviews`, {
+            const response = await axios.post(`${API_URL}/books/${book._id}/reviews`, {
                 rating, comment: reviewText
             }, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -171,8 +180,8 @@ const BookDetails = () => {
                     <Row className="g-0">
                         <Col lg={4} className="position-relative">
                             <img
-                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api').replace('/api', '')}${book.coverImage}`}
-                                alt={book.title}
+                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${API_URL.replace('/api', '')}${book.coverImage}`}
+                                alt={getLocalizedStr(book.title)}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: '500px' }}
                             />
                             <Badge
@@ -187,13 +196,13 @@ const BookDetails = () => {
                         <Col lg={8}>
                             <Card.Body className="p-5">
                                 <Badge bg="primary" className="mb-3 px-3 py-2 fw-medium">
-                                    {typeof book.category === 'object' && book.category ? (book.category.en || book.category.hi || Object.values(book.category)[0]) : book.category}
+                                    {getLocalizedStr(book.category)}
                                 </Badge>
                                 <h1 className="display-5 fw-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                    {typeof book.title === 'object' && book.title ? (book.title.en || book.title.hi || Object.values(book.title)[0]) : book.title}
+                                    {getLocalizedStr(book.title)}
                                 </h1>
                                 <p className="h4 text-muted mb-4 fw-normal">
-                                    by {typeof book.author === 'object' && book.author ? (book.author.en || book.author.hi || Object.values(book.author)[0]) : book.author}
+                                    by {getLocalizedStr(book.author)}
                                 </p>
 
                                 <div className="mb-5">
@@ -201,7 +210,7 @@ const BookDetails = () => {
                                         <FiBook className="text-primary" /> Description
                                     </h5>
                                     <p className="text-secondary leading-relaxed" style={{ fontSize: '1.1rem' }}>
-                                        {typeof book.description === 'object' && book.description ? (book.description.en || book.description.hi || Object.values(book.description)[0]) : (book.description || 'No description available for this book.')}
+                                        {getLocalizedStr(book.description, 'No description available for this book.')}
                                     </p>
                                 </div>
 
@@ -220,7 +229,7 @@ const BookDetails = () => {
                                             <div className="p-3 bg-light rounded-circle text-primary"><FiLayers /></div>
                                             <div>
                                                 <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>Published By</small>
-                                                <span className="fw-bold">{typeof book.publisher === 'object' && book.publisher ? (book.publisher.en || book.publisher.hi || Object.values(book.publisher)[0]) : book.publisher}</span>
+                                                <span className="fw-bold">{getLocalizedStr(book.publisher)}</span>
                                             </div>
                                         </div>
                                     </Col>
@@ -357,7 +366,7 @@ const BookDetails = () => {
                                 <FiClock size={48} />
                             </div>
                             <h5>Set your Return Date</h5>
-                            <p className="text-muted small">When do you plan to return <strong>"{book.title}"</strong>?</p>
+                            <p className="text-muted small">When do you plan to return <strong>"{getLocalizedStr(book.title)}"</strong>?</p>
                         </div>
 
                         <Form.Group className="mb-4">

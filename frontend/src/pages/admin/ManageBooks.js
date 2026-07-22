@@ -5,6 +5,15 @@ import { getBooks, addBook, updateBook, deleteBook, getCategories } from '../../
 import { toast } from 'react-toastify';
 import { Html5Qrcode } from 'html5-qrcode';
 import axios from 'axios';
+import { API_URL } from '../../config/api';
+
+const getLocalizedStr = (field, defaultVal = '') => {
+    if (!field) return defaultVal;
+    if (typeof field === 'object') {
+        return field.en || field.hi || Object.values(field)[0] || defaultVal;
+    }
+    return field;
+};
 
 const ManageBooks = () => {
     const [books, setBooks] = useState([]);
@@ -26,7 +35,7 @@ const ManageBooks = () => {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                 responseType: 'blob'
             };
-            const response = await axios.get(`${process.env.REACT_APP_API_URL}/reports/${type}`, config);
+            const response = await axios.get(`${API_URL}/reports/${type}`, config);
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -53,7 +62,7 @@ const ManageBooks = () => {
             const data = new FormData();
             data.append('file', bulkFile);
 
-            await axios.post(`${process.env.REACT_APP_API_URL}/books/bulk-upload`, data, {
+            await axios.post(`${API_URL}/books/bulk-upload`, data, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -124,11 +133,11 @@ const ManageBooks = () => {
             setIsEditing(true);
             setCurrentBook(book);
             setFormData({
-                title: book.title,
-                author: book.author,
+                title: getLocalizedStr(book.title),
+                author: getLocalizedStr(book.author),
                 isbn: book.isbn,
-                category: book.category,
-                description: book.description,
+                category: getLocalizedStr(book.category),
+                description: getLocalizedStr(book.description),
                 publisher: book.publisher,
                 publishedYear: book.publishedYear,
                 pages: book.pages,
@@ -228,8 +237,7 @@ const ManageBooks = () => {
     const fetchBookByISBN = async (isbn) => {
         try {
             toast.info('Looking up ISBN ' + isbn + '...');
-            const apiUrl = process.env.REACT_APP_API_URL || '';
-            const res = await axios.get(`${apiUrl}/isbn/lookup/${isbn}`);
+            const res = await axios.get(`${API_URL}/isbn/lookup/${isbn}`);
             if (res.data && res.data.data) {
                 const info = res.data.data;
 
@@ -294,12 +302,10 @@ const ManageBooks = () => {
             };
 
             if (isEditing) {
-                const apiUrl = process.env.REACT_APP_API_URL || '';
-                await axios.put(`${apiUrl}/books/${currentBook._id}`, data, config);
+                await axios.put(`${API_URL}/books/${currentBook._id}`, data, config);
                 toast.success('Book updated successfully');
             } else {
-                const apiUrl = process.env.REACT_APP_API_URL || '';
-                await axios.post(`${apiUrl}/books`, data, config);
+                await axios.post(`${API_URL}/books`, data, config);
                 toast.success('New book added successfully');
             }
             setShowModal(false);
@@ -390,16 +396,16 @@ const ManageBooks = () => {
                                                 <td className="px-4 py-3">
                                                     <div className="d-flex align-items-center gap-3">
                                                         <img
-                                                            src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api').replace('/api', '')}${book.coverImage}`}
+                                                            src={book.coverImage?.startsWith('http') ? book.coverImage : `${API_URL.replace('/api', '')}${book.coverImage}`}
                                                             alt=""
                                                             style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
                                                         />
                                                         <div>
                                                             <div className="fw-bold">
-                                                                {typeof book.title === 'object' && book.title ? (book.title.en || book.title.hi || Object.values(book.title)[0]) : book.title}
+                                                                {getLocalizedStr(book.title)}
                                                             </div>
                                                             <small className="text-muted">
-                                                                by {typeof book.author === 'object' && book.author ? (book.author.en || book.author.hi || Object.values(book.author)[0]) : book.author}
+                                                                by {getLocalizedStr(book.author)}
                                                             </small>
                                                         </div>
                                                     </div>

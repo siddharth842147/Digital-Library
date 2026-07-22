@@ -39,8 +39,7 @@ const sendEmail = require('../utils/sendEmail');
 // @access  Public
 exports.register = async (req, res) => {
     try {
-        const { name, email, password, phone, address, role } = req.body;
-        const sendSMS = require('../utils/sendSMS');
+        const { name, email, password, phone, address } = req.body;
         // Check if user already exists with email
         const emailExists = await User.findOne({ email });
         if (emailExists) {
@@ -68,7 +67,7 @@ exports.register = async (req, res) => {
             password,
             phone,
             address,
-            role: role || 'student'
+            role: 'student'
         });
 
         // Send welcome email in background
@@ -102,12 +101,15 @@ exports.register = async (req, res) => {
 
             if (staffEmails.length > 0) {
                 console.log(`Notifying staff: ${staffEmails.join(', ')}`);
-                await sendEmail({
+                sendEmail({
                     email: staffEmails.join(','),
                     subject: 'New Student Registered 👤',
                     message: `Hello Staff,\n\nA new student has registered on the platform.\n\nDetails:\nName: ${user.name}\nEmail: ${user.email}\nPhone: ${user.phone || 'N/A'}\nUSN: ${user.usn || 'N/A'}\n\nPlease review the account if necessary.\n\nBest regards,\nSystem Notification`
+                }).then(() => {
+                    console.log('✅ Staff notification sent');
+                }).catch(staffEmailError => {
+                    console.error('❌ Staff notification failed:', staffEmailError.message);
                 });
-                console.log('✅ Staff notification sent');
             } else {
                 console.log('No valid staff emails found for notification');
             }
@@ -118,9 +120,16 @@ exports.register = async (req, res) => {
         // Immediately return token and user (no OTP required)
         await sendTokenResponse(user, 201, res, 'Registration successful');
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                message: 'User already exists with this email'
+            });
+        }
+        console.error(error.message);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Registration failed. Please try again.'
         });
     }
 };

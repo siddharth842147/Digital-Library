@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Container, Row, Col, Card, Button, Spinner, Badge, Tabs, Tab, Form } from 'react-bootstrap';
+import { API_URL } from '../config/api';
 import { FiDollarSign, FiCreditCard, FiInfo, FiSmartphone, FiHome, FiCopy } from 'react-icons/fi';
 import { createPaymentOrder, verifyPayment, loadRazorpayScript, getAdminPaymentDetails, submitManualPayment } from '../services/paymentService';
 import { getMyBorrowedBooks } from '../services/borrowService';
@@ -28,7 +29,7 @@ const Payment = () => {
                 const total = (user?.totalFines || 0) + accrued;
                 setFineAmount(Math.max(0, total));
 
-                const coinRes = await axios.get(`${process.env.REACT_APP_API_URL}/user/coins`, {
+                const coinRes = await axios.get(`${API_URL}/user/coins`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 });
                 setCoins(coinRes.data.data.coins || 0);
@@ -170,7 +171,7 @@ const Payment = () => {
             if (coinsToUse <= 0) return toast.info("No coins to apply");
             
             setLoading(true);
-            const response = await axios.post(`${process.env.REACT_APP_API_URL}/payment/apply-coins-payment`, { coinsToUse }, {
+            const response = await axios.post(`${API_URL}/payment/apply-coins-payment`, { coinsToUse }, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             

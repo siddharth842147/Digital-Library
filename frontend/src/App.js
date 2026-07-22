@@ -6,6 +6,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import { io } from 'socket.io-client';
 import { toast } from 'react-toastify';
+import { API_URL } from './config/api';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -80,7 +81,7 @@ function AppContent() {
     const { showSessionExpired, setShowSessionExpired } = useAuth();
 
     React.useEffect(() => {
-        const socket = io((process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api').replace('/api', ''), {
+        const socket = io(API_URL.replace('/api', ''), {
             transports: ['websocket']
         });
         

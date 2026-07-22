@@ -6,6 +6,14 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { Tabs, Tab } from 'react-bootstrap';
 
+const getLocalizedStr = (field, defaultVal = '') => {
+    if (!field) return defaultVal;
+    if (typeof field === 'object') {
+        return field.en || field.hi || Object.values(field)[0] || defaultVal;
+    }
+    return field;
+};
+
 const BorrowManagement = () => {
     const { user: loggedInUser } = useAuth();
     const [borrows, setBorrows] = useState([]);
@@ -135,7 +143,7 @@ const BorrowManagement = () => {
                                                         <small className="text-muted small">{b.user?.email || 'N/A'}</small>
                                                     </td>
                                                     <td>
-                                                        <div className="fw-bold">{b.book?.title || 'Unknown Book'}</div>
+                                                        <div className="fw-bold">{getLocalizedStr(b.book?.title, 'Unknown Book')}</div>
                                                         <small className="text-muted">Due: {new Date(b.dueDate).toLocaleDateString()}</small>
                                                     </td>
                                                     <td>

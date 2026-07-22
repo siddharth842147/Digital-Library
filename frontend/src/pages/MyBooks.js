@@ -3,8 +3,17 @@ import { Container, Row, Col, Card, Badge, Button, Spinner, Modal } from 'react-
 import { FiBook, FiCalendar, FiRotateCcw, FiAlertCircle, FiInfo } from 'react-icons/fi';
 import axios from 'axios';
 import { getMyBorrowedBooks, returnBook } from '../services/borrowService';
+import { API_URL } from '../config/api';
 import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
+
+const getLocalizedStr = (field, defaultVal = '') => {
+    if (!field) return defaultVal;
+    if (typeof field === 'object') {
+        return field.en || field.hi || Object.values(field)[0] || defaultVal;
+    }
+    return field;
+};
 
 const MyBooks = () => {
     const [borrows, setBorrows] = useState([]);
@@ -47,7 +56,7 @@ const MyBooks = () => {
     const executeRenew = async (id) => {
         setConfirmModal(prev => ({ ...prev, show: false }));
         try {
-            const response = await axios.put(`${process.env.REACT_APP_API_URL}/borrow/renew/${id}`, {}, {
+            const response = await axios.put(`${API_URL}/borrow/renew/${id}`, {}, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             toast.success(response.data.message || 'Book renewed successfully!', { className: 'alert-slide-bottom-green', position: 'bottom-center' });
@@ -129,8 +138,8 @@ const MyBooks = () => {
                                     <Row className="g-0 h-100">
                                         <Col md={4}>
                                             <img
-                                                src={borrow.book?.coverImage?.startsWith('http') ? borrow.book.coverImage : (borrow.book?.coverImage ? `${(process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api').replace('/api', '')}${borrow.book.coverImage}` : 'https://placehold.co/400x600?text=No+Cover')}
-                                                alt={borrow.book?.title || 'Unknown Book'}
+                                                src={borrow.book?.coverImage?.startsWith('http') ? borrow.book.coverImage : (borrow.book?.coverImage ? `${API_URL.replace('/api', '')}${borrow.book.coverImage}` : 'https://placehold.co/400x600?text=No+Cover')}
+                                                alt={getLocalizedStr(borrow.book?.title, 'Unknown Book')}
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: '250px' }}
                                             />
                                         </Col>
@@ -139,7 +148,7 @@ const MyBooks = () => {
                                                 <div className="flex-grow-1">
                                                     <div className="d-flex justify-content-between align-items-center mb-3">
                                                          <Badge bg="info">
-                                                             {typeof borrow.book?.category === 'object' && borrow.book.category ? (borrow.book.category.en || borrow.book.category.hi || Object.values(borrow.book.category)[0]) : (borrow.book?.category || 'Unknown')}
+                                                             {getLocalizedStr(borrow.book?.category, 'Unknown')}
                                                          </Badge>
                                                         <div className="d-flex gap-2">
                                                             {borrow.status === 'overdue' && (
@@ -152,10 +161,10 @@ const MyBooks = () => {
                                                         </div>
                                                     </div>
                                                      <h4 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>
-                                                         {typeof borrow.book?.title === 'object' && borrow.book.title ? (borrow.book.title.en || borrow.book.title.hi || Object.values(borrow.book.title)[0]) : (borrow.book?.title || 'Unknown Book')}
+                                                         {getLocalizedStr(borrow.book?.title, 'Unknown Book')}
                                                      </h4>
                                                      <p className="text-muted mb-4">
-                                                         by {typeof borrow.book?.author === 'object' && borrow.book.author ? (borrow.book.author.en || borrow.book.author.hi || Object.values(borrow.book.author)[0]) : (borrow.book?.author || 'Unknown Author')}
+                                                         by {getLocalizedStr(borrow.book?.author, 'Unknown Author')}
                                                      </p>
 
                                                     <div className="mb-4">

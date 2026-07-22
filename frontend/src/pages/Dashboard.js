@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Container, Row, Col, Card, Badge, Table, Spinner } from 'react-bootstrap';
+import { API_URL } from '../config/api';
 import { FiBook, FiClock, FiDollarSign, FiUser, FiActivity, FiArrowRight } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { getMyBorrowedBooks } from '../services/borrowService';
 import { Link, Navigate } from 'react-router-dom';
+
+const getLocalizedStr = (field, defaultVal = '') => {
+    if (!field) return defaultVal;
+    if (typeof field === 'object') {
+        return field.en || field.hi || Object.values(field)[0] || defaultVal;
+    }
+    return field;
+};
 
 const AnimatedNumber = ({ value }) => {
     const [count, setCount] = useState(0);
@@ -57,7 +66,7 @@ const Dashboard = () => {
 
                 let coinsData = 0;
                 try {
-                    const coinRes = await axios.get(`${process.env.REACT_APP_API_URL}/user/coins`, {
+                    const coinRes = await axios.get(`${API_URL}/user/coins`, {
                         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                     });
                     coinsData = coinRes.data.data.coins;
@@ -67,7 +76,7 @@ const Dashboard = () => {
 
                 let profileWishlist = [];
                 try {
-                    const profileRes = await axios.get(`${process.env.REACT_APP_API_URL}/user/profile`, {
+                    const profileRes = await axios.get(`${API_URL}/user/profile`, {
                         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                     });
                     profileWishlist = profileRes.data.data.wishlist || [];
@@ -76,7 +85,7 @@ const Dashboard = () => {
                 }
 
                 // Fetch AI recommendations without blocking everything
-                axios.get(`${process.env.REACT_APP_API_URL}/user/recommendations`, {
+                axios.get(`${API_URL}/user/recommendations`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 }).then(res => setRecommendations(res.data.data)).catch(err => console.error(err));
 
@@ -212,8 +221,8 @@ const Dashboard = () => {
                                                                     style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '6px' }}
                                                                 />
                                                                 <div>
-                                                                    <div className="fw-bold">{borrow.book?.title || 'Unknown Book'}</div>
-                                                                    <small className="text-muted">{borrow.book?.author || 'Unknown Author'}</small>
+                                                                    <div className="fw-bold">{getLocalizedStr(borrow.book?.title, 'Unknown Book')}</div>
+                                                                    <small className="text-muted">{getLocalizedStr(borrow.book?.author, 'Unknown Author')}</small>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -278,8 +287,8 @@ const Dashboard = () => {
                                                                     style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '6px' }}
                                                                 />
                                                                 <div>
-                                                                    <div className="fw-bold"><Link to={`/book/${book._id}`} className="text-decoration-none text-dark">{book.title}</Link></div>
-                                                                    <small className="text-muted">{book.author}</small>
+                                                                    <div className="fw-bold"><Link to={`/book/${book._id}`} className="text-decoration-none text-dark">{getLocalizedStr(book.title)}</Link></div>
+                                                                    <small className="text-muted">{getLocalizedStr(book.author)}</small>
                                                                 </div>
                                                             </div>
                                                         </td>

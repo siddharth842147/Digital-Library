@@ -3,6 +3,14 @@ import { Container, Card, Table, Badge, Spinner } from 'react-bootstrap';
 import { getBooks } from '../../services/bookService';
 import { FiAlertTriangle } from 'react-icons/fi';
 
+const getLocalizedStr = (field, defaultVal = '') => {
+    if (!field) return defaultVal;
+    if (typeof field === 'object') {
+        return field.en || field.hi || Object.values(field)[0] || defaultVal;
+    }
+    return field;
+};
+
 const InventoryAudit = () => {
     const [lowStockBooks, setLowStockBooks] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -47,11 +55,11 @@ const InventoryAudit = () => {
                             {lowStockBooks.map(book => (
                                 <tr key={book._id}>
                                     <td>
-                                        <div className="fw-bold">{book.title}</div>
-                                        <small className="text-muted">{book.author}</small>
+                                        <div className="fw-bold">{getLocalizedStr(book.title)}</div>
+                                        <small className="text-muted">{getLocalizedStr(book.author)}</small>
                                     </td>
                                     <td>{book.isbn}</td>
-                                    <td>{book.category}</td>
+                                    <td>{getLocalizedStr(book.category)}</td>
                                     <td>{book.availableCopies} / {book.totalCopies}</td>
                                     <td>
                                         <Badge bg={book.availableCopies === 0 ? "danger" : "warning"}>

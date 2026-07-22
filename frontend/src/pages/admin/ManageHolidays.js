@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Button, Form, Table, Modal, Spinner } from '
 import { FiPlus, FiTrash2, FiInfo } from 'react-icons/fi';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { API_URL } from '../../config/api';
 
 const ManageHolidays = () => {
     const [holidays, setHolidays] = useState([]);
@@ -17,7 +18,7 @@ const ManageHolidays = () => {
     const fetchHolidays = async () => {
         try {
             setLoading(true);
-            const response = await axios.get(`${process.env.REACT_APP_API_URL}/holidays`);
+            const response = await axios.get(`${API_URL}/holidays`);
             setHolidays(response.data.data);
         } catch (error) {
             toast.error('Failed to load holidays');
@@ -33,7 +34,7 @@ const ManageHolidays = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post(`${process.env.REACT_APP_API_URL}/holidays`, formData, {
+            await axios.post(`${API_URL}/holidays`, formData, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
             toast.success('Holiday added successfully');
@@ -48,7 +49,7 @@ const ManageHolidays = () => {
     const handleDelete = async (id) => {
         if (window.confirm('Delete this holiday? This will affect future fine calculations.')) {
             try {
-                await axios.delete(`${process.env.REACT_APP_API_URL}/holidays/${id}`, {
+                await axios.delete(`${API_URL}/holidays/${id}`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 });
                 toast.success('Holiday removed');

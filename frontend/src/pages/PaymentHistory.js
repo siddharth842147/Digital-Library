@@ -4,6 +4,7 @@ import { FiDollarSign, FiDownload, FiFileText, FiMail } from 'react-icons/fi';
 import { getPaymentHistory, sendReceiptEmail, downloadReceipt } from '../services/paymentService';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import { API_URL } from '../config/api';
 
 const PaymentHistory = () => {
     const { user } = useAuth();
@@ -43,7 +44,7 @@ const PaymentHistory = () => {
     const handleDownload = async (paymentId) => {
         try {
             const response = await downloadReceipt(paymentId);
-            window.open((process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api').replace('/api', '') + response.data.receiptUrl, '_blank');
+            window.open(API_URL.replace('/api', '') + response.data.receiptUrl, '_blank');
         } catch (error) {
             toast.error('Failed to download receipt');
         }

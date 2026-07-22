@@ -7,6 +7,15 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config/api';
+
+const getLocalizedStr = (field, defaultVal = '') => {
+    if (!field) return defaultVal;
+    if (typeof field === 'object') {
+        return field.en || field.hi || Object.values(field)[0] || defaultVal;
+    }
+    return field;
+};
 
 const Books = () => {
     const { user } = useAuth();
@@ -108,7 +117,7 @@ const Books = () => {
     const fetchBookByISBN = async (isbn) => {
         try {
             toast.info('Looking up ISBN...');
-            const res = await axios.get(`${process.env.REACT_APP_API_URL || ''}/isbn/lookup/${isbn}`);
+            const res = await axios.get(`${API_URL}/isbn/lookup/${isbn}`);
             if (res.data && res.data.data) {
                 const info = res.data.data;
                 setFormData(prev => ({ ...prev, title: info.title || prev.title, author: info.author || prev.author, description: info.description || prev.description, coverImage: info.coverImage || prev.coverImage, publisher: info.publisher || prev.publisher, publishedYear: info.publishedYear || prev.publishedYear, pages: info.pages || prev.pages }));
@@ -125,7 +134,7 @@ const Books = () => {
             const data = new FormData();
             Object.keys(formData).forEach(k => data.append(k, formData[k]));
             if (coverFile) data.append('coverImage', coverFile);
-            await axios.post(`${process.env.REACT_APP_API_URL || ''}/books`, data, {
+            await axios.post(`${API_URL}/books`, data, {
                 headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             toast.success('Book added successfully');
@@ -209,8 +218,8 @@ const Books = () => {
                                         <div style={{ position: 'relative', overflow: 'hidden' }}>
                                             <Card.Img
                                                 variant="top"
-                                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${(process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api').replace('/api', '')}${book.coverImage}`}
-                                                alt={book.title}
+                                                src={book.coverImage?.startsWith('http') ? book.coverImage : `${API_URL.replace('/api', '')}${book.coverImage}`}
+                                                alt={getLocalizedStr(book.title)}
                                                 style={{ height: '300px', objectFit: 'cover' }}
                                             />
                                             <Badge
@@ -228,13 +237,13 @@ const Books = () => {
                                         </div>
                                         <Card.Body>
                                             <Badge bg="primary" className="mb-2">
-                                                {typeof book.category === 'object' && book.category ? (book.category.en || book.category.hi || Object.values(book.category)[0]) : book.category}
+                                                {getLocalizedStr(book.category)}
                                             </Badge>
-                                            <Card.Title style={{ fontSize: '1rem', fontWeight: 600 }}>
-                                                {typeof book.title === 'object' && book.title ? (book.title.en || book.title.hi || Object.values(book.title)[0]) : book.title}
+                                            <Card.Title className="text-truncate fw-bold mb-1" style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                                                {getLocalizedStr(book.title)}
                                             </Card.Title>
-                                            <Card.Text style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                                                by {typeof book.author === 'object' && book.author ? (book.author.en || book.author.hi || Object.values(book.author)[0]) : book.author}
+                                            <Card.Text className="text-muted text-truncate mb-3" style={{ fontSize: '0.9rem' }}>
+                                                by {getLocalizedStr(book.author)}
                                             </Card.Text>
                                             <div className="d-flex justify-content-between align-items-center mt-3">
                                                 <small style={{ color: 'var(--text-secondary)' }}>

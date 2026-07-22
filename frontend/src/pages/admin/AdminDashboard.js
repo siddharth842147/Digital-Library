@@ -3,7 +3,16 @@ import { Container, Row, Col, Card, Spinner, Table, Badge } from 'react-bootstra
 import { FiUsers, FiBook, FiClock, FiDollarSign, FiActivity, FiArrowRight, FiCheckCircle, FiShield, FiAlertTriangle } from 'react-icons/fi';
 import { getDashboardStats } from '../../services/adminService';
 import axios from 'axios';
+import { API_URL } from '../../config/api';
 import { Link } from 'react-router-dom';
+
+const getLocalizedStr = (field, defaultVal = '') => {
+    if (!field) return defaultVal;
+    if (typeof field === 'object') {
+        return field.en || field.hi || Object.values(field)[0] || defaultVal;
+    }
+    return field;
+};
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState(null);
@@ -30,7 +39,7 @@ const AdminDashboard = () => {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                 responseType: 'blob'
             };
-            const response = await axios.get(`${process.env.REACT_APP_API_URL}/reports/export/${type}`, config);
+            const response = await axios.get(`${API_URL}/reports/export/${type}`, config);
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -160,8 +169,8 @@ const AdminDashboard = () => {
                                                         <small className="text-muted">{borrow.user?.email}</small>
                                                     </td>
                                                     <td>
-                                                        <div className="fw-bold">{borrow.book?.title || 'Unknown Book'}</div>
-                                                        <small className="text-muted">{borrow.book?.author || 'Unknown Author'}</small>
+                                                        <div className="fw-bold">{getLocalizedStr(borrow.book?.title, 'Unknown Book')}</div>
+                                                        <small className="text-muted">{getLocalizedStr(borrow.book?.author, 'Unknown Author')}</small>
                                                     </td>
                                                     <td>
                                                         {borrow.status === 'returned' ? (

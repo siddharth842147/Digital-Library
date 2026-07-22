@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaRobot, FaTimes, FaPaperPlane } from 'react-icons/fa';
 import axios from 'axios';
+import { API_URL } from '../config/api';
 import './Chatbot.css'; // We'll add some specific CSS here
 
 const Chatbot = () => {
@@ -33,7 +34,7 @@ const Chatbot = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.post(`${process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api'}/chatbot/query`, {
+            const response = await axios.post(`${API_URL}/chatbot/query`, {
                 message: userMessage
             }, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {}

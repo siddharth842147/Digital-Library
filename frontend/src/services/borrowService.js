@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'https://digital-library-dhh2.onrender.com/api';
+import { API_URL } from '../config/api';
 
 // Borrow a book
 export const borrowBook = async (bookId, dueDate) => {
