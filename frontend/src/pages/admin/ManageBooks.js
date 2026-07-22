@@ -411,7 +411,7 @@ const ManageBooks = () => {
                                                     </div>
                                                 </td>
                                                 <td className="font-monospace small">{book.isbn}</td>
-                                                <td><Badge bg="light" text="primary">{book.category}</Badge></td>
+                                                <td><Badge bg="light" text="primary">{getLocalizedStr(book.category)}</Badge></td>
                                                 <td>
                                                     <div className="fw-bold">{book.availableCopies} / {book.totalCopies}</div>
                                                     <div className="progress mt-1" style={{ height: '4px', width: '60px' }}>
