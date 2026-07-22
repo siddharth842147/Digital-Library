@@ -472,15 +472,20 @@ const ManageBooks = () => {
                                 <Col md={4}>
                                     <Form.Group className="mb-3">
                                         <Form.Label className="small fw-bold">CATEGORY</Form.Label>
-                                        <Form.Select
+                                        <Form.Control
+                                            required
+                                            type="text"
+                                            list="category-options"
                                             value={formData.category}
                                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                        >
-                                             {categories.map(c => {
-                                                 const cStr = typeof c === 'object' && c ? (c.en || c.hi || Object.values(c)[0]) : c;
-                                                 return <option key={cStr} value={cStr}>{cStr}</option>;
-                                             })}
-                                        </Form.Select>
+                                            placeholder="Select or type category"
+                                        />
+                                        <datalist id="category-options">
+                                            {categories.map(c => {
+                                                const cStr = typeof c === 'object' && c ? (c.en || c.hi || Object.values(c)[0]) : c;
+                                                return <option key={cStr} value={cStr} />;
+                                            })}
+                                        </datalist>
                                     </Form.Group>
                                 </Col>
                                 <Col md={6}>
