@@ -144,7 +144,7 @@ exports.handleQuery = async (req, res) => {
 
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
             // Prompt engineering to act as a librarian and decide if we need to search the DB
             const systemPrompt = `You are a helpful and polite virtual librarian for the JVIT Digital Library. 
@@ -247,7 +247,7 @@ exports.getRecommendations = async (req, res) => {
             }
 
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
             const result = await model.generateContent(prompt);
             let recommendations = result.response.text();

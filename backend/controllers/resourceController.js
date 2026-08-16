@@ -75,7 +75,7 @@ exports.createResource = async (req, res) => {
         try {
             if (process.env.GEMINI_API_KEY) {
                 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
                 const prompt = `Analyze this academic resource title and description. Return "FLAGGED" if it contains inappropriate, offensive, hateful, or clearly spam non-academic content. Otherwise return "OK". Title: "${req.body.title}", Description: "${req.body.description || ''}"`;
                 const result = await model.generateContent(prompt);
                 const text = result.response.text().trim();
