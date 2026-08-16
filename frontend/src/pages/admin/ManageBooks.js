@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Table, Badge, Form, Modal, Spinner, InputGroup, ProgressBar } from 'react-bootstrap';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiBook, FiImage, FiCamera } from 'react-icons/fi';
 import { getBooks, addBook, updateBook, deleteBook, getCategories } from '../../services/bookService';
@@ -165,15 +165,29 @@ const ManageBooks = () => {
         setShowModal(true);
     };
 
-    // Barcode scanner state
+    // Barcode scanner state and refs
     const [showScanner, setShowScanner] = useState(false);
     const [scanner, setScanner] = useState(null);
+    const scannerRef = useRef(null);
+    const isScanningRef = useRef(false);
+
+    // Clean up scanner on unmount
+    useEffect(() => {
+        return () => {
+            if (scannerRef.current) {
+                try { scannerRef.current.stop(); } catch (e) {}
+                try { scannerRef.current.clear(); } catch (e) {}
+            }
+        };
+    }, []);
 
     const startScanner = async () => {
         setShowScanner(true);
+        isScanningRef.current = false;
         setTimeout(() => {
             try {
                 const qrcode = new Html5Qrcode('reader');
+                scannerRef.current = qrcode;
                 setScanner(qrcode);
                 const config = {
                     fps: 15,
@@ -208,22 +222,26 @@ const ManageBooks = () => {
     };
 
     const stopScanner = async () => {
-        if (scanner) {
+        if (scannerRef.current) {
             try {
-                await scanner.stop();
+                await scannerRef.current.stop();
             } catch (e) {
                 console.warn('Error stopping scanner', e);
             }
-            try { scanner.clear(); } catch (e) { }
-            setScanner(null);
+            try { scannerRef.current.clear(); } catch (e) { }
+            scannerRef.current = null;
         }
+        setScanner(null);
         setShowScanner(false);
     };
 
     const handleBarcodeScanned = async (raw) => {
+        if (isScanningRef.current) return;
         // Extract digits (ISBN/EAN)
         const digits = (raw || '').replace(/[^0-9Xx]/g, '').trim();
         if (!digits) return;
+
+        isScanningRef.current = true;
         // Many barcodes are EAN-13 with leading zeros; prefer 13 or 10
         let isbn = digits;
         if (isbn.length > 13) isbn = isbn.slice(-13);

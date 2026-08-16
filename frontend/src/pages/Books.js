@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Container, Row, Col, Form, InputGroup, Card, Badge, Pagination, Modal, Button, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { FiSearch, FiBook, FiPlus, FiCamera, FiImage } from 'react-icons/fi';
@@ -30,6 +30,18 @@ const Books = () => {
     const [showModal, setShowModal] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
     const [scanner, setScanner] = useState(null);
+    const scannerRef = useRef(null);
+    const isScanningRef = useRef(false);
+
+    // Clean up scanner on unmount
+    useEffect(() => {
+        return () => {
+            if (scannerRef.current) {
+                try { scannerRef.current.stop(); } catch (e) {}
+                try { scannerRef.current.clear(); } catch (e) {}
+            }
+        };
+    }, []);
     const [coverFile, setCoverFile] = useState(null);
     const [formData, setFormData] = useState({
         title: '', author: '', isbn: '', category: '', description: '', publisher: '',
@@ -82,9 +94,11 @@ const Books = () => {
 
     const startScanner = async () => {
         setShowScanner(true);
+        isScanningRef.current = false;
         setTimeout(() => {
             try {
                 const qrcode = new Html5Qrcode('reader');
+                scannerRef.current = qrcode;
                 setScanner(qrcode);
                 qrcode.start(
                     { facingMode: 'environment' },
@@ -97,17 +111,21 @@ const Books = () => {
     };
 
     const stopScanner = async () => {
-        if (scanner) {
-            try { await scanner.stop(); } catch (e) {}
-            try { scanner.clear(); } catch (e) {}
-            setScanner(null);
+        if (scannerRef.current) {
+            try { await scannerRef.current.stop(); } catch (e) {}
+            try { scannerRef.current.clear(); } catch (e) {}
+            scannerRef.current = null;
         }
+        setScanner(null);
         setShowScanner(false);
     };
 
     const handleBarcodeScanned = async (raw) => {
+        if (isScanningRef.current) return;
         const digits = (raw || '').replace(/[^0-9Xx]/g, '').trim();
         if (!digits) return;
+        
+        isScanningRef.current = true;
         let isbn = digits.length > 13 ? digits.slice(-13) : digits;
         await stopScanner();
         setFormData(prev => ({ ...prev, isbn }));
