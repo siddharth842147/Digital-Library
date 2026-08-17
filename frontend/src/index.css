@@ -1477,3 +1477,13 @@ a:hover {
   0% { text-shadow: 0 0 5px rgba(239, 68, 68, 0.4); }
   100% { text-shadow: 0 0 15px rgba(239, 68, 68, 0.8); }
 }
+
+@media (max-width: 576px) {
+  .rotating-logo-container {
+    width: clamp(210px, 65vw, 300px);
+    height: clamp(210px, 65vw, 300px);
+  }
+  .rotating-logo {
+    padding: 12px;
+  }
+}

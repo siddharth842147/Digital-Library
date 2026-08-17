@@ -63,7 +63,7 @@ const Home = () => {
                                 </Link>
                             </div>
                         </Col>
-                        <Col lg={5} className="d-none d-lg-block slide-in-right">
+                        <Col lg={5} className="slide-in-right mt-5 mt-lg-0 d-flex justify-content-center">
                             <div style={{
                                 width: '100%',
                                 display: 'flex',
@@ -74,8 +74,8 @@ const Home = () => {
                                 {/* Decorative Ring */}
                                 <div style={{
                                     position: 'absolute',
-                                    width: '380px',
-                                    height: '380px',
+                                    width: 'clamp(260px, 80vw, 380px)',
+                                    height: 'clamp(260px, 80vw, 380px)',
                                     border: '2px dashed rgba(255,255,255,0.2)',
                                     borderRadius: '50%',
                                     animation: 'spin 20s linear infinite'
