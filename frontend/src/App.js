@@ -32,6 +32,7 @@ const PaymentHistory = lazy(() => import('./pages/PaymentHistory'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Policy = lazy(() => import('./pages/Policy'));
 const AcademicResources = lazy(() => import('./pages/AcademicResources'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 
 // Admin Pages (Lazy Loaded)
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -123,6 +124,14 @@ function AppContent() {
                             element={
                                 <PublicRoute>
                                     <Register />
+                                </PublicRoute>
+                            }
+                        />
+                        <Route
+                            path="/forgot-password"
+                            element={
+                                <PublicRoute>
+                                    <ForgotPassword />
                                 </PublicRoute>
                             }
                         />

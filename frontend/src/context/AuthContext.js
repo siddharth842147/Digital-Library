@@ -221,10 +221,23 @@ export const AuthProvider = ({ children }) => {
     const forgotPassword = async (email) => {
         try {
             await axios.post(`${API_URL}/auth/forgot-password`, { email });
-            toast.success('Password reset email sent!');
+            toast.success('Verification OTP code sent to your email!');
             return { success: true };
         } catch (error) {
             const message = getSafeErrorMessage(error, 'Password reset request failed.');
+            toast.error(message);
+            return { success: false, message };
+        }
+    };
+
+    // Reset password using OTP
+    const resetPasswordOtp = async (email, otp, password) => {
+        try {
+            await axios.post(`${API_URL}/auth/reset-password-otp`, { email, otp, password });
+            toast.success('Password reset successful! Please login with your new password.');
+            return { success: true };
+        } catch (error) {
+            const message = getSafeErrorMessage(error, 'Password reset failed. Please check the OTP.');
             toast.error(message);
             return { success: false, message };
         }
@@ -240,6 +253,7 @@ export const AuthProvider = ({ children }) => {
         updateProfile,
         updatePassword,
         forgotPassword,
+        resetPasswordOtp,
         showSessionExpired,
         setShowSessionExpired,
         isAuthenticated: !!user,

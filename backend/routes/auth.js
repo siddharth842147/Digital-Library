@@ -5,6 +5,7 @@ const {
     getMe,
     forgotPassword,
     resetPassword,
+    resetPasswordOtp,
     updateDetails,
     updatePassword,
     verifyOtp,
@@ -46,6 +47,7 @@ router.post('/verify-otp', authLimiter, verifyOtp);
 router.post('/login', authLimiter, loginValidation, validate, login);
 router.post('/forgot-password', authLimiter, forgotPassword);
 router.post('/reset-password/:resettoken', authLimiter, resetPassword);
+router.post('/reset-password-otp', authLimiter, resetPasswordOtp);
 router.post('/refresh', refreshToken);
 router.post('/logout', logout);
 

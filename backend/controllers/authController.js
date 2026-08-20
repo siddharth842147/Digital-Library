@@ -223,7 +223,7 @@ exports.getMe = async (req, res) => {
 // @access  Public
 exports.forgotPassword = async (req, res) => {
     try {
-        const user = await User.findOne({ email: req.body.email });
+        const user = await User.findOne({ email: req.body.email.toLowerCase() });
 
         if (!user) {
             return res.status(404).json({
@@ -232,27 +232,33 @@ exports.forgotPassword = async (req, res) => {
             });
         }
 
-        // Get reset token
-        const resetToken = user.getResetPasswordToken();
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Hash the OTP and store in resetPasswordToken
+        user.resetPasswordToken = crypto
+            .createHash('sha256')
+            .update(otp)
+            .digest('hex');
+
+        // Set expiry (10 minutes)
+        user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
 
         await user.save({ validateBeforeSave: false });
 
-        // Create reset url
-        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-
-        const message = `You are receiving this email because you (or someone else) has requested the reset of a password.\n\nPlease click on the following link to reset your password:\n\n${resetUrl}\n\nThis link will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`;
+        const message = `You are receiving this email because you (or someone else) has requested the reset of a password.\n\nYour 6-digit OTP verification code is:\n\n${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`;
 
         try {
             await sendEmail({
                 email: user.email,
-                subject: 'Password Reset Request',
+                subject: 'Password Reset Verification Code',
                 message,
                 throwOnError: true
             });
 
             res.status(200).json({
                 success: true,
-                message: 'Password reset email sent'
+                message: 'Verification OTP sent to email'
             });
         } catch (err) {
             console.error(err);
@@ -311,6 +317,55 @@ exports.resetPassword = async (req, res) => {
         });
     }
 };
+
+// @desc    Reset password using OTP
+// @route   POST /api/auth/reset-password-otp
+// @access  Public
+exports.resetPasswordOtp = async (req, res) => {
+    try {
+        const { email, otp, password } = req.body;
+
+        if (!email || !otp || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide email, OTP, and new password'
+            });
+        }
+
+        // Get hashed token (OTP)
+        const resetPasswordToken = crypto
+            .createHash('sha256')
+            .update(otp)
+            .digest('hex');
+
+        const user = await User.findOne({
+            email: email.toLowerCase(),
+            resetPasswordToken,
+            resetPasswordExpire: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired OTP'
+            });
+        }
+
+        // Set new password
+        user.password = password;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+        await user.save();
+
+        await sendTokenResponse(user, 200, res, 'Password reset successful');
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 
 // @desc    Update user details
 // @route   PUT /api/auth/update-details
