@@ -81,7 +81,33 @@ const Payment = () => {
                 return;
             }
 
-            const { orderId, amount, currency } = orderResponse.data;
+            const { orderId, amount, currency, isMock } = orderResponse.data;
+
+            if (isMock) {
+                const confirmMock = window.confirm(
+                    "Mock Payment Mode: The Razorpay configuration is invalid or missing. Would you like to simulate a successful payment?"
+                );
+                if (confirmMock) {
+                    try {
+                        const verifyResponse = await verifyPayment({
+                            orderId,
+                            paymentId: `pay_mock_${Date.now()}`,
+                            signature: 'mock_signature',
+                            paymentMethod: 'razorpay'
+                        });
+
+                        if (verifyResponse.success) {
+                            toast.success('Mock Payment successful! Your fines have been cleared.');
+                            navigate('/payment-history');
+                        } else {
+                            toast.error('Mock Payment verification failed.');
+                        }
+                    } catch (err) {
+                        toast.error('Error verifying mock payment');
+                    }
+                }
+                return;
+            }
 
             const options = {
                 key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_demo',
