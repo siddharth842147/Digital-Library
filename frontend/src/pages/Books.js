@@ -136,14 +136,19 @@ const Books = () => {
         try {
             toast.info('Looking up ISBN...');
             const res = await axios.get(`${API_URL}/isbn/lookup/${isbn}`);
-            if (res.data && res.data.data) {
+            if (res.data && res.data.success && res.data.data) {
                 const info = res.data.data;
                 setFormData(prev => ({ ...prev, title: info.title || prev.title, author: info.author || prev.author, description: info.description || prev.description, coverImage: info.coverImage || prev.coverImage, publisher: info.publisher || prev.publisher, publishedYear: info.publishedYear || prev.publishedYear, pages: info.pages || prev.pages }));
                 toast.success('Book details filled!');
             } else {
-                toast.error('No book details found');
+                const msg = res.data?.message || 'No book details found';
+                toast.warning(`${msg}. Please enter details manually.`);
             }
-        } catch (err) { toast.error('Lookup failed. Enter manually.'); }
+        } catch (err) { 
+            toast.error('Lookup failed. Enter manually.'); 
+        } finally {
+            isScanningRef.current = false;
+        }
     };
 
     const handleSubmit = async (e) => {

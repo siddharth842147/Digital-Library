@@ -256,7 +256,7 @@ const ManageBooks = () => {
         try {
             toast.info('Looking up ISBN ' + isbn + '...');
             const res = await axios.get(`${API_URL}/isbn/lookup/${isbn}`);
-            if (res.data && res.data.data) {
+            if (res.data && res.data.success && res.data.data) {
                 const info = res.data.data;
 
                 setFormData(prev => ({
@@ -270,12 +270,15 @@ const ManageBooks = () => {
                     description: info.description || prev.description
                 }));
                 toast.success('Book details auto-filled!');
-                return;
+            } else {
+                const msg = res.data?.message || 'No book details found for this ISBN';
+                toast.warning(`${msg}. Please enter details manually.`);
             }
-            toast.error('No book details found for this ISBN');
         } catch (err) {
             console.error('Lookup error', err);
             toast.error('Failed to lookup ISBN. Please enter details manually.');
+        } finally {
+            isScanningRef.current = false;
         }
     };
 

@@ -1,5 +1,6 @@
 const fetch = require('node-fetch');
 const BookLookup = require('../models/BookLookup');
+const Book = require('../models/Book');
 const { toIsbn13 } = require('../utils/isbn');
 
 // TTL for cache (in ms) — 30 days
@@ -11,7 +12,7 @@ const normalizeOpenLibraryData = (info, isbn13) => {
         title: info.title || info.title_suggest || '',
         author: (info.authors && info.authors[0] && info.authors[0].name) || (info.author_name && info.author_name[0]) || '',
         publisher: (info.publishers && info.publishers[0] && info.publishers[0].name) || (info.publisher && info.publisher[0]) || '',
-        publishedYear: info.publish_date ? (parseInt(info.publish_date.match(/\d{4}/)?.[0]) || new Date().getFullYear()) : (info.first_publish_year || new Date().getFullYear()),
+        publishedYear: info.publishedYear ? (parseInt(info.publishedYear.toString().match(/\d{4}/)?.[0]) || new Date().getFullYear()) : (info.publish_date ? (parseInt(info.publish_date.match(/\d{4}/)?.[0]) || new Date().getFullYear()) : (info.first_publish_year || new Date().getFullYear())),
         pages: info.number_of_pages || info.number_of_pages_maybe || '',
         coverImage: (info.cover && (info.cover.large || info.cover.medium || info.cover.small)) || (info.cover_i ? `https://covers.openlibrary.org/b/id/${info.cover_i}-L.jpg` : ''),
         description: typeof info.description === 'string' ? info.description : (info.description?.value || info.notes || ''),
@@ -39,6 +40,22 @@ exports.lookupISBN = async (req, res) => {
         const raw = req.params.isbn;
         const isbn13 = toIsbn13(raw);
         if (!isbn13) return res.status(400).json({ success: false, message: 'Invalid ISBN' });
+
+        // 0. Check local database first
+        const localBook = await Book.findOne({ isbn: { $in: [raw, isbn13] } });
+        if (localBook) {
+            const localData = {
+                title: typeof localBook.title === 'string' ? localBook.title : (localBook.title?.en || localBook.title || ''),
+                author: typeof localBook.author === 'string' ? localBook.author : (localBook.author?.en || localBook.author || ''),
+                publisher: localBook.publisher || '',
+                publishedYear: localBook.publishedYear || new Date().getFullYear(),
+                pages: localBook.pages || '',
+                coverImage: localBook.coverImage || '',
+                description: typeof localBook.description === 'string' ? localBook.description : (localBook.description?.en || localBook.description || ''),
+                isbn: localBook.isbn
+            };
+            return res.status(200).json({ success: true, source: 'local_database', data: localData });
+        }
 
         // Check cache
         const cached = await BookLookup.findOne({ isbn13 });
@@ -85,7 +102,8 @@ exports.lookupISBN = async (req, res) => {
         }
 
         if (!result) {
-            return res.status(404).json({ success: false, message: 'No data found for ISBN' });
+            // Return 200 with success: false instead of 404 to avoid Axios network error exceptions
+            return res.status(200).json({ success: false, data: null, message: 'No book details found for this ISBN' });
         }
 
         // Save to cache

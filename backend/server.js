@@ -67,11 +67,16 @@ const allowedOrigins = [
 
 const checkOrigin = (origin, callback) => {
     if (!origin) return callback(null, true);
-    const isAllowed = allowedOrigins.some(o => o === origin) || origin.endsWith('.vercel.app');
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    const isAllowed = allowedOrigins.some(o => o.replace(/\/$/, '') === normalizedOrigin) || 
+                      normalizedOrigin.endsWith('.vercel.app') || 
+                      normalizedOrigin === 'http://localhost:3000' ||
+                      normalizedOrigin === 'http://127.0.0.1:3000';
     if (isAllowed) {
         callback(null, true);
     } else {
-        callback(new Error('Not allowed by CORS'));
+        console.warn(`CORS check failed for origin: ${origin}`);
+        callback(null, false);
     }
 };
 
@@ -105,6 +110,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https://placehold.co", "https://via.placeholder.com", "blob:"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      connectSrc: ["'self'", "ws://localhost:5000", "http://localhost:5000", "ws://127.0.0.1:5000", "http://127.0.0.1:5000", "https://*.googleapis.com", "https://openlibrary.org"],
     },
   },
   xFrameOptions: { action: "deny" },

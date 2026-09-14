@@ -47,3 +47,10 @@ export const verifyReturn = async (id) => {
     const response = await axios.put(`${API_URL}/borrow/verify-return/${id}`);
     return response.data;
 };
+
+// Renew a book
+export const renewBook = async (id) => {
+    const response = await axios.put(`${API_URL}/borrow/renew/${id}`);
+    return response.data;
+};
+
