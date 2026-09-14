@@ -70,6 +70,8 @@ const checkOrigin = (origin, callback) => {
     const normalizedOrigin = origin.replace(/\/$/, '');
     const isAllowed = allowedOrigins.some(o => o.replace(/\/$/, '') === normalizedOrigin) || 
                       normalizedOrigin.endsWith('.vercel.app') || 
+                      normalizedOrigin.endsWith('.netlify.app') || 
+                      normalizedOrigin.endsWith('.onrender.com') || 
                       normalizedOrigin === 'http://localhost:3000' ||
                       normalizedOrigin === 'http://127.0.0.1:3000';
     if (isAllowed) {
@@ -108,9 +110,9 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https://placehold.co", "https://via.placeholder.com", "blob:"],
+      imgSrc: ["'self'", "data:", "https://placehold.co", "https://via.placeholder.com", "https://images.unsplash.com", "https://covers.openlibrary.org", "blob:"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      connectSrc: ["'self'", "ws://localhost:5000", "http://localhost:5000", "ws://127.0.0.1:5000", "http://127.0.0.1:5000", "https://*.googleapis.com", "https://openlibrary.org"],
+      connectSrc: ["'self'", "ws://localhost:5000", "http://localhost:5000", "ws://127.0.0.1:5000", "http://127.0.0.1:5000", "https://*.googleapis.com", "https://openlibrary.org", "https://*.onrender.com", "wss://*.onrender.com"],
     },
   },
   xFrameOptions: { action: "deny" },
