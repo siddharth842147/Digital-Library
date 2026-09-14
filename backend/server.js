@@ -135,6 +135,23 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Sanitize data
+app.use((req, res, next) => {
+  if (req.query) {
+    const queryCopy = { ...req.query };
+    try {
+      delete req.query;
+      req.query = queryCopy;
+    } catch (e) {
+      Object.defineProperty(req, 'query', {
+        value: queryCopy,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      });
+    }
+  }
+  next();
+});
 app.use(mongoSanitize());
 app.use(xss());
 
