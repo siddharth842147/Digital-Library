@@ -45,3 +45,5 @@ coverage/
 # Misc
 *.pem
 .vercel
+CHAT_SESSION_LOG.md
+*chat_log*

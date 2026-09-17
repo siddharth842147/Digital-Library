@@ -14,9 +14,14 @@ exports.getDashboardStats = async (req, res) => {
         const totalBooks = await Book.countDocuments();
         const totalBorrows = await Borrow.countDocuments();
         const activeBorrows = await Borrow.countDocuments({
-            status: { $in: ['borrowed', 'overdue'] }
+            status: { $in: ['borrowed', 'overdue', 'return_pending'] }
         });
-        const overdueBorrows = await Borrow.countDocuments({ status: 'overdue' });
+        const overdueBorrows = await Borrow.countDocuments({
+            $or: [
+                { status: 'overdue' },
+                { status: { $in: ['borrowed', 'return_pending'] }, dueDate: { $lt: new Date() } }
+            ]
+        });
 
         // Available books
         const availableBooks = await Book.countDocuments({ status: 'available' });
@@ -42,9 +47,18 @@ exports.getDashboardStats = async (req, res) => {
         // Recent activities
         const recentBorrows = await Borrow.find()
             .populate('user', 'name email')
-            .populate('book', 'title author')
+            .populate('book', 'title author coverImage category')
             .sort({ updatedAt: -1 })
             .limit(5);
+
+        const now = new Date();
+        const mappedRecentBorrows = recentBorrows.map(b => {
+            const obj = b.toObject();
+            if ((obj.status === 'borrowed' || obj.status === 'return_pending') && new Date(obj.dueDate) < now) {
+                obj.status = 'overdue';
+            }
+            return obj;
+        });
 
         const recentPayments = await Payment.find({ status: 'completed' })
             .populate('user', 'name email')
@@ -98,7 +112,7 @@ exports.getDashboardStats = async (req, res) => {
                     monthlyRevenue: monthlyRevenue[0]?.total || 0
                 },
                 recentActivities: {
-                    recentBorrows,
+                    recentBorrows: mappedRecentBorrows,
                     recentPayments
                 },
                 charts: {

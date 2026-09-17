@@ -523,11 +523,15 @@ exports.getActiveBorrows = async (req, res) => {
 // @access  Private (Admin/Librarian)
 exports.getOverdueBooks = async (req, res) => {
     try {
+        const now = new Date();
         const borrows = await Borrow.find({
-            status: 'overdue',
+            $or: [
+                { status: 'overdue' },
+                { status: 'borrowed', dueDate: { $lt: now } }
+            ],
             returnDate: null
         })
-            .populate('book', 'title author isbn')
+            .populate('book', 'title author isbn coverImage')
             .populate('user', 'name email phone')
             .sort({ dueDate: 1 });
 

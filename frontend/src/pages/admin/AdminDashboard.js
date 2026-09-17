@@ -123,49 +123,17 @@ const AdminDashboard = () => {
     const totalBooks = stats.overview.totalBooks || 0;
     const totalStaff = stats.overview.totalLibrarians || 0;
 
-    const recentBorrowsList = stats.recentActivities?.recentBorrows?.length > 0
-        ? stats.recentActivities.recentBorrows
-        : [
-            {
-                _id: 'default_borrow_1',
-                status: 'overdue',
-                createdAt: '2026-08-13T00:00:00.000Z',
-                dueDate: '2026-08-14T00:00:00.000Z',
-                user: { name: 'Vinay kumar HM', email: 'vinaykumarhm@gmail.com' },
-                book: { title: 'The Lean Startup', author: 'Eric Ries', category: 'Business / Tech Innovation' }
-            },
-            {
-                _id: 'default_borrow_2',
-                status: 'borrowed',
-                createdAt: '2026-08-10T00:00:00.000Z',
-                dueDate: '2026-08-24T00:00:00.000Z',
-                user: { name: 'Ananya Sharma', email: 'ananya.s@gmail.com' },
-                book: { title: 'Clean Code: Agile Handbook', author: 'Robert C. Martin', category: 'Computer Science' }
-            }
-        ];
+    const recentBorrowsList = stats.recentActivities?.recentBorrows || [];
+    const recentPaymentsList = stats.recentActivities?.recentPayments || [];
 
-    const recentPaymentsList = stats.recentActivities?.recentPayments?.length > 0
-        ? stats.recentActivities.recentPayments
-        : [
-            {
-                _id: 'pay_1',
-                transactionId: 'TXN-948201',
-                paymentMethod: 'Online UPI',
-                paidAt: '2026-08-02T10:30:00.000Z',
-                amount: 180,
-                user: { name: 'Vinay kumar HM' },
-                paymentType: 'fine'
-            },
-            {
-                _id: 'pay_2',
-                transactionId: 'TXN-881293',
-                paymentMethod: 'Wallet Debit',
-                paidAt: '2026-07-25T14:15:00.000Z',
-                amount: 60,
-                user: { name: 'Rahul Verma' },
-                paymentType: 'reservation'
-            }
-        ];
+    // Calculate dynamic punctuality score based on active borrows & overdue
+    const totalTrackedBorrows = totalActiveBorrows + totalOverdue;
+    const punctualityScore = totalTrackedBorrows > 0
+        ? Math.max(0, Math.min(100, Math.round(((totalTrackedBorrows - totalOverdue) / totalTrackedBorrows) * 100)))
+        : 100;
+    const overdueRate = 100 - punctualityScore;
+    const onTimeCircDash = ((punctualityScore / 100) * 88).toFixed(1);
+    const overdueCircDash = ((overdueRate / 100) * 88).toFixed(1);
 
     return (
         <div className="dash-new-wrapper">
@@ -408,29 +376,26 @@ const AdminDashboard = () => {
                                             <div className="dash-donut-wrap">
                                                 <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
                                                     <circle cx="18" cy="18" r="14" fill="none" stroke="#f1f5f9" strokeWidth="4" />
-                                                    {/* Green Segment (92%) */}
+                                                    {/* Green Segment */}
                                                     <circle
                                                         cx="18" cy="18" r="14" fill="none"
                                                         stroke="#059669" strokeWidth="4.2"
-                                                        strokeDasharray="81 88" strokeDashoffset="0"
+                                                        strokeDasharray={`${onTimeCircDash} 88`} strokeDashoffset="0"
                                                         strokeLinecap="round"
                                                     />
-                                                    {/* Yellow Segment (5%) */}
-                                                    <circle
-                                                        cx="18" cy="18" r="14" fill="none"
-                                                        stroke="#f59e0b" strokeWidth="4.2"
-                                                        strokeDasharray="4.4 88" strokeDashoffset="-81"
-                                                    />
-                                                    {/* Red Segment (3%) */}
-                                                    <circle
-                                                        cx="18" cy="18" r="14" fill="none"
-                                                        stroke="#ef4444" strokeWidth="4.2"
-                                                        strokeDasharray="2.6 88" strokeDashoffset="-85.4"
-                                                    />
+                                                    {/* Red Segment (Overdue) */}
+                                                    {overdueRate > 0 && (
+                                                        <circle
+                                                            cx="18" cy="18" r="14" fill="none"
+                                                            stroke="#ef4444" strokeWidth="4.2"
+                                                            strokeDasharray={`${overdueCircDash} 88`} strokeDashoffset={`-${onTimeCircDash}`}
+                                                            strokeLinecap="round"
+                                                        />
+                                                    )}
                                                 </svg>
                                                 <div className="dash-donut-center-text">
-                                                    <div className="dash-donut-score">92%</div>
-                                                    <div className="dash-donut-sub">ON-TIME</div>
+                                                    <div className="dash-donut-score">{punctualityScore}%</div>
+                                                    <div className="dash-donut-sub">{punctualityScore === 100 ? 'OPTIMAL' : 'ON-TIME'}</div>
                                                 </div>
                                             </div>
 
@@ -440,14 +405,7 @@ const AdminDashboard = () => {
                                                         <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#059669', display: 'inline-block' }}></span>
                                                         Strict On-Time
                                                     </span>
-                                                    <span className="fw-bold">184 books</span>
-                                                </div>
-                                                <div className="d-flex align-items-center justify-content-between gap-3">
-                                                    <span className="d-flex align-items-center gap-1.5 text-muted">
-                                                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }}></span>
-                                                        Grace Extension
-                                                    </span>
-                                                    <span className="fw-bold">12 books</span>
+                                                    <span className="fw-bold">{totalActiveBorrows} active</span>
                                                 </div>
                                                 <div className="d-flex align-items-center justify-content-between gap-3">
                                                     <span className="d-flex align-items-center gap-1.5 text-muted">
@@ -481,73 +439,83 @@ const AdminDashboard = () => {
                             </div>
 
                             {/* Circulation Entries */}
-                            {recentBorrowsList.slice(0, 3).map((borrow) => {
-                                const bookTitle = getLocalizedStr(borrow.book?.title, 'The Lean Startup');
-                                const bookAuthor = getLocalizedStr(borrow.book?.author, 'Eric Ries');
-                                const studentName = borrow.user?.name || 'Vinay kumar HM';
-                                const issueDateStr = borrow.createdAt ? new Date(borrow.createdAt).toLocaleDateString() : '8/13/2026';
-                                const dueDateStr = borrow.dueDate ? new Date(borrow.dueDate).toLocaleDateString() : '8/14/2026';
-                                const isOverdue = borrow.status === 'overdue' || new Date(borrow.dueDate) < new Date();
+                            {recentBorrowsList.length === 0 ? (
+                                <div className="p-4 text-center text-muted" style={{ background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                                    <FiCheckCircle size={28} className="text-success mb-2 d-block mx-auto" />
+                                    <div className="fw-semibold text-dark">No Active Borrows in Circulation</div>
+                                    <small>All library volumes are accounted for on stacks or compliant.</small>
+                                </div>
+                            ) : (
+                                recentBorrowsList.slice(0, 5).map((borrow) => {
+                                    const bookTitle = getLocalizedStr(borrow.book?.title, 'Library Book');
+                                    const bookAuthor = getLocalizedStr(borrow.book?.author, 'Author Unlisted');
+                                    const studentName = borrow.user?.name || 'Member';
+                                    const issueDateStr = borrow.createdAt ? new Date(borrow.createdAt).toLocaleDateString() : 'Recent';
+                                    const dueDateStr = borrow.dueDate ? new Date(borrow.dueDate).toLocaleDateString() : 'N/A';
+                                    const isOverdue = borrow.status === 'overdue' || (borrow.dueDate && new Date(borrow.dueDate) < new Date());
+                                    const diffDays = borrow.dueDate ? Math.floor((new Date() - new Date(borrow.dueDate)) / (1000 * 60 * 60 * 24)) : 0;
+                                    const daysLeft = borrow.dueDate ? Math.max(0, Math.ceil((new Date(borrow.dueDate) - new Date()) / (1000 * 60 * 60 * 24))) : 0;
 
-                                return (
-                                    <div key={borrow._id} className="dash-book-loan-box">
-                                        <div className="d-flex align-items-center gap-3">
-                                            <div style={{
-                                                width: '52px',
-                                                height: '74px',
-                                                background: 'var(--gradient-premium)',
-                                                borderRadius: '8px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: 'white',
-                                                fontSize: '1.4rem'
-                                            }}>
-                                                📖
+                                    return (
+                                        <div key={borrow._id} className="dash-book-loan-box">
+                                            <div className="d-flex align-items-center gap-3">
+                                                <div style={{
+                                                    width: '52px',
+                                                    height: '74px',
+                                                    background: 'var(--gradient-premium)',
+                                                    borderRadius: '8px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'white',
+                                                    fontSize: '1.4rem'
+                                                }}>
+                                                    📖
+                                                </div>
+                                                <div>
+                                                    <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                                        <span className="fw-bold text-dark" style={{ fontSize: '1.05rem' }}>{bookTitle}</span>
+                                                        {isOverdue ? (
+                                                            <span className="dash-pill-tag-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>OVERDUE</span>
+                                                        ) : (
+                                                            <span className="dash-pill-tag-green" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>ACTIVE</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-muted small mb-2">Member: <strong>{studentName}</strong> • Author: {bookAuthor}</div>
+                                                    <div className="d-flex align-items-center gap-4 text-secondary" style={{ fontSize: '0.78rem' }}>
+                                                        <div>
+                                                            <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>Issue Date</span>
+                                                            <span className="fw-semibold text-dark">{issueDateStr}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>Due Date</span>
+                                                            <span className={`fw-semibold ${isOverdue ? 'text-danger' : 'text-dark'}`}>{dueDateStr}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>Action Status</span>
+                                                            <span className={`fw-bold ${isOverdue ? 'text-danger' : 'text-success'}`}>
+                                                                {isOverdue ? `${Math.max(1, diffDays)} Days Exceeded` : `${daysLeft} Days Left`}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                                                    <span className="fw-bold text-dark" style={{ fontSize: '1.05rem' }}>{bookTitle}</span>
-                                                    {isOverdue ? (
-                                                        <span className="dash-pill-tag-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>OVERDUE</span>
-                                                    ) : (
-                                                        <span className="dash-pill-tag-green" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>ACTIVE</span>
-                                                    )}
-                                                </div>
-                                                <div className="text-muted small mb-2">Member: <strong>{studentName}</strong> • Author: {bookAuthor}</div>
-                                                <div className="d-flex align-items-center gap-4 text-secondary" style={{ fontSize: '0.78rem' }}>
-                                                    <div>
-                                                        <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>Issue Date</span>
-                                                        <span className="fw-semibold text-dark">{issueDateStr}</span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>Due Date</span>
-                                                        <span className={`fw-semibold ${isOverdue ? 'text-danger' : 'text-dark'}`}>{dueDateStr}</span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>Action Status</span>
-                                                        <span className={`fw-bold ${isOverdue ? 'text-danger' : 'text-success'}`}>
-                                                            {isOverdue ? '12 Days Exceeded' : 'On Schedule'}
-                                                        </span>
-                                                    </div>
-                                                </div>
+
+                                            <div className="d-flex align-items-center gap-2 ms-auto">
+                                                <Link to="/admin/borrows" className="dash-btn-renew">
+                                                    Manage Loan
+                                                </Link>
+                                                <button
+                                                    onClick={() => toast.info(`Reminder alert dispatched to ${studentName}! 📧`)}
+                                                    className="dash-btn-extend"
+                                                >
+                                                    Remind Student
+                                                </button>
                                             </div>
                                         </div>
-
-                                        <div className="d-flex align-items-center gap-2 ms-auto">
-                                            <Link to="/admin/borrows" className="dash-btn-renew">
-                                                Manage Loan
-                                            </Link>
-                                            <button
-                                                onClick={() => toast.info(`Reminder alert dispatched to ${studentName}! 📧`)}
-                                                className="dash-btn-extend"
-                                            >
-                                                Remind Student
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })
+                            )}
 
                             <div className="dash-policy-notice">
                                 <div className="d-flex align-items-center gap-2">
@@ -614,22 +582,31 @@ const AdminDashboard = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {recentPaymentsList.map((payment) => (
-                                            <tr key={payment._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                <td className="py-3 ps-2">
-                                                    <div className="fw-bold text-dark">
-                                                        {payment.paymentType === 'fine' ? 'Late Fee Paid (Operating Systems Concepts)' : 'Book Reservation Deposit (Cloud Arch Manual)'}
-                                                    </div>
-                                                    <small className="text-muted">Txn ID: #{payment.transactionId || payment._id.substring(0, 10).toUpperCase()} • Student: {payment.user?.name}</small>
-                                                </td>
-                                                <td className="py-3 text-secondary">{payment.paymentMethod || 'Online UPI'}</td>
-                                                <td className="py-3 text-secondary">{new Date(payment.paidAt || Date.now()).toLocaleDateString()}</td>
-                                                <td className="py-3 fw-bold text-dark">₹{payment.amount}</td>
-                                                <td className="py-3 text-end pe-2">
-                                                    <span className="dash-pill-tag-green">Successful</span>
+                                        {recentPaymentsList.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="5" className="text-center py-4 text-muted">
+                                                    <FiFileText size={22} className="mb-2 text-secondary d-block mx-auto" />
+                                                    <div>No recent payment transactions in ledger</div>
                                                 </td>
                                             </tr>
-                                        ))}
+                                        ) : (
+                                            recentPaymentsList.map((payment) => (
+                                                <tr key={payment._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                    <td className="py-3 ps-2">
+                                                        <div className="fw-bold text-dark">
+                                                            {payment.description || (payment.paymentType === 'fine' ? 'Late Fee Settled' : 'Library Service Receipt')}
+                                                        </div>
+                                                        <small className="text-muted">Txn ID: #{payment.transactionId || payment._id.substring(0, 10).toUpperCase()} • Student: {payment.user?.name || 'Member'}</small>
+                                                    </td>
+                                                    <td className="py-3 text-secondary">{payment.paymentMethod || 'Online UPI'}</td>
+                                                    <td className="py-3 text-secondary">{new Date(payment.paidAt || payment.createdAt || Date.now()).toLocaleDateString()}</td>
+                                                    <td className="py-3 fw-bold text-dark">₹{payment.amount}</td>
+                                                    <td className="py-3 text-end pe-2">
+                                                        <span className="dash-pill-tag-green">Successful</span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

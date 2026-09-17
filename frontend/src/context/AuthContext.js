@@ -41,13 +41,17 @@ export const AuthProvider = ({ children }) => {
         try {
             await fetchCsrfToken();
             const token = localStorage.getItem('token');
-            if (token) {
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            if (!token) {
+                setUser(null);
+                setLoading(false);
+                return;
             }
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             const res = await axios.get(`${API_URL}/auth/me`);
             setUser(res.data.data);
         } catch (error) {
-            console.error('Error loading user:', error);
+            localStorage.removeItem('token');
+            delete axios.defaults.headers.common['Authorization'];
             setUser(null);
         } finally {
             setLoading(false);
@@ -62,7 +66,15 @@ export const AuthProvider = ({ children }) => {
             async (error) => {
                 const originalRequest = error.config;
                 const apiUrl = API_URL;
-                if (error.response?.status === 401 && originalRequest && !originalRequest._retry && originalRequest.url !== `${apiUrl}/auth/login` && originalRequest.url !== `${apiUrl}/auth/refresh`) {
+                const token = localStorage.getItem('token');
+                if (
+                    error.response?.status === 401 &&
+                    originalRequest &&
+                    !originalRequest._retry &&
+                    token &&
+                    originalRequest.url !== `${apiUrl}/auth/login` &&
+                    originalRequest.url !== `${apiUrl}/auth/refresh`
+                ) {
                     originalRequest._retry = true;
                     try {
                         const refreshRes = await axios.post(`${apiUrl}/auth/refresh`);
@@ -74,11 +86,13 @@ export const AuthProvider = ({ children }) => {
                         }
                         return axios(originalRequest);
                     } catch (refreshError) {
+                        const hadToken = !!localStorage.getItem('token');
                         localStorage.removeItem('token');
                         delete axios.defaults.headers.common['Authorization'];
                         setUser(null);
-                        // Show modal if they were previously authenticated
-                        setShowSessionExpired(true);
+                        if (hadToken) {
+                            setShowSessionExpired(true);
+                        }
                         return Promise.reject(refreshError);
                     }
                 }
@@ -246,6 +260,7 @@ export const AuthProvider = ({ children }) => {
     const value = {
         user,
         loading,
+        loadUser,
         login,
         register,
         verifyOtp,

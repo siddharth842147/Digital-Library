@@ -114,14 +114,15 @@ const Dashboard = () => {
                 console.warn('Failed to fetch payments', e);
             }
 
-            const overdueList = borrows.filter(b => b.status === 'overdue');
+            const activeBorrows = borrows.filter(b => ['borrowed', 'overdue', 'return_pending'].includes(b.status));
+            const overdueList = borrows.filter(b => b.status === 'overdue' || (new Date(b.dueDate) < new Date() && !b.returnDate));
             const totalFinesCalculated = Math.max(0, (user?.totalFines || 0) + currentBorrowsAccruedFine);
 
             setStats({
-                totalBorrowed: borrows.length,
+                totalBorrowed: activeBorrows.length,
                 overdue: overdueList.length,
-                pendingFines: totalFinesCalculated > 0 ? totalFinesCalculated : (overdueList.length > 0 ? 240 : 0),
-                coins: coinsData || 350,
+                pendingFines: totalFinesCalculated,
+                coins: coinsData || 0,
                 recentBooks: borrows,
                 wishlist: profileWishlist.slice(0, 3),
                 payments: paymentsData
@@ -165,47 +166,68 @@ const Dashboard = () => {
 
     const handleExportStatement = () => {
         const headers = "Type,Title/Reference,Issue Date,Due Date,Status,Amount (INR)\n";
-        const rows = [
-            `Loan,"The Lean Startup - Eric Ries",2026-08-13,2026-08-14,Overdue,240`,
-            `Payment,"Late Fee Paid (Operating Systems Concepts)",2026-08-02,2026-08-02,Successful,180`,
-            `Charge,"Book Reservation Charge (Cloud Arch Manual)",2026-07-25,2026-07-25,Settled,60`,
-            `Rebate,"Holiday Grace Period Waiver (Independence Day)",2026-06-18,2026-06-18,Waived,-40`
-        ].join("\n");
+        const borrowRows = (stats?.borrows || []).map(b => {
+            const title = `"${(b.book?.title || 'Book').replace(/"/g, '""')} - ${(b.book?.author || '').replace(/"/g, '""')}"`;
+            const issue = b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : '';
+            const due = b.dueDate ? new Date(b.dueDate).toISOString().split('T')[0] : '';
+            const status = b.status || 'Active';
+            const fine = b.fine || 0;
+            return `Loan,${title},${issue},${due},${status},${fine}`;
+        });
 
-        const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+        const paymentRows = (stats?.payments || []).map(p => {
+            const desc = `"${(p.description || (p.paymentType === 'fine' ? 'Late Fee Paid' : 'Library Fee')).replace(/"/g, '""')}"`;
+            const date = p.paidAt || p.createdAt ? new Date(p.paidAt || p.createdAt).toISOString().split('T')[0] : '';
+            return `Payment,${desc},${date},${date},Successful,${p.amount || 0}`;
+        });
+
+        const allRows = [...borrowRows, ...paymentRows];
+        const content = headers + (allRows.length > 0 ? allRows.join("\n") : "Notice,\"No loans or transactions recorded for this account\",,,Compliant,0");
+
+        const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `JVIT_Library_Statement_${user?.name?.replace(/\s+/g, '_')}_2026.csv`);
+        link.setAttribute('download', `JVIT_Library_Statement_${user?.name ? user.name.replace(/\s+/g, '_') : 'Member'}_2026.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         toast.info('Statement downloaded successfully 📄');
     };
 
-    // Fallback book object matching Image 1 when no active borrow exists in database
-    const displayedBooks = stats.recentBooks.length > 0 ? stats.recentBooks : [
-        {
-            _id: 'default_lean_startup',
-            status: 'overdue',
-            borrowDate: '2026-08-13T00:00:00.000Z',
-            dueDate: '2026-08-14T00:00:00.000Z',
-            accruedFine: 240,
-            book: {
-                title: 'The Lean Startup',
-                author: 'Eric Ries',
-                category: 'Business / Tech Innovation',
-                coverImage: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&auto=format&fit=crop&q=80'
-            }
-        }
-    ];
-
     const libraryCardId = user?.usn || `JVIT-${user?.branch || 'CS'}-2023-049`;
     const memberSinceDate = user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '8/13/2026';
-    const totalBorrowedCount = stats.totalBorrowed > 0 ? stats.totalBorrowed : 1;
-    const overdueCount = stats.overdue > 0 ? stats.overdue : 1;
-    const pendingFinesVal = stats.pendingFines > 0 ? stats.pendingFines : 240;
-    const knowledgePtsVal = stats.coins || 350;
+    const totalBorrowedCount = stats.totalBorrowed;
+    const overdueCount = stats.overdue;
+    const pendingFinesVal = stats.pendingFines;
+    const knowledgePtsVal = stats.coins || 0;
+
+    const allUserLoans = stats.recentBooks || [];
+    const overdueBorrows = allUserLoans.filter(b => b.status === 'overdue' || (new Date(b.dueDate) < new Date() && !b.returnDate));
+    const earliestDueDate = overdueBorrows.length > 0
+        ? new Date(Math.min(...overdueBorrows.map(b => new Date(b.dueDate))))
+        : null;
+    const earliestDueStr = earliestDueDate
+        ? earliestDueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : null;
+
+    const firstOverdue = overdueBorrows[0];
+    const primaryOverdueTitle = firstOverdue
+        ? getLocalizedStr(firstOverdue.book?.title, 'Overdue Book')
+        : 'Outstanding Account Late Fees';
+    const firstOverdueDays = firstOverdue?.dueDate
+        ? Math.max(1, Math.floor((new Date() - new Date(firstOverdue.dueDate)) / (1000 * 60 * 60 * 24)))
+        : null;
+    const fineFormulaDesc = firstOverdueDays
+        ? `Calculated formula: ${firstOverdueDays} days overdue × ₹10/day statutory late fee${overdueBorrows.length > 1 ? ` (+ ${overdueBorrows.length - 1} other item${overdueBorrows.length > 2 ? 's' : ''})` : ''}`
+        : 'Accumulated overdue fine balance from previous loans or return settlements';
+
+    const latestCompletedPayment = stats.payments?.find(p => p.status === 'completed') || stats.payments?.[0];
+
+    const onTimeCount = Math.max(0, allUserLoans.length - overdueCount);
+    const punctualityScore = allUserLoans.length === 0 ? 100 : Math.max(0, Math.round((onTimeCount / allUserLoans.length) * 100));
+    const strokeGreen = Math.round((punctualityScore / 100) * 88);
+    const strokeRed = Math.max(0, 88 - strokeGreen);
 
     return (
         <div className="dash-new-wrapper">
@@ -214,7 +236,7 @@ const Dashboard = () => {
                 <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                     <div>
                         <h1 className="dash-header-title">
-                            Welcome back, {user?.name ? user.name.split(' ')[0] : 'Vinay'}! 👋
+                            Welcome back, {user?.name ? user.name.split(' ')[0] : 'Student'}! 👋
                         </h1>
                         <p className="dash-header-sub">
                             Here's an overview of your library activity, borrowing limits, and live ledger breakdown.
@@ -259,7 +281,9 @@ const Dashboard = () => {
                                     <div className="dash-kpi-icon-box dash-kpi-icon-purple">
                                         <FiBook />
                                     </div>
-                                    <span className="dash-pill-tag-green">+12% mo</span>
+                                    <span className={totalBorrowedCount >= 3 ? 'dash-pill-tag-amber' : 'dash-pill-tag-green'}>
+                                        {totalBorrowedCount >= 3 ? 'Quota Limit' : (totalBorrowedCount > 0 ? 'Active Loans' : 'Slots Available')}
+                                    </span>
                                 </div>
                                 <div className="dash-kpi-val">
                                     <AnimatedNumber value={totalBorrowedCount} />
@@ -268,7 +292,7 @@ const Dashboard = () => {
                             </div>
                             <div className="dash-kpi-split">
                                 <span>Capacity limit</span>
-                                <span className="fw-bold text-dark">{totalBorrowedCount} / 4 slots</span>
+                                <span className="fw-bold text-dark">{totalBorrowedCount} / 3 slots</span>
                             </div>
                         </div>
                     </Col>
@@ -281,16 +305,27 @@ const Dashboard = () => {
                                     <div className="dash-kpi-icon-box dash-kpi-icon-red">
                                         <FiClock />
                                     </div>
-                                    <span className="dash-pill-tag-red">Urgent Alert</span>
+                                    <span className={overdueCount > 0 ? 'dash-pill-tag-red' : 'dash-pill-tag-green'}>
+                                        {overdueCount > 0 ? 'Urgent Alert' : 'All Compliant'}
+                                    </span>
                                 </div>
-                                <div className="dash-kpi-val dash-kpi-val-red">
+                                <div className={`dash-kpi-val ${overdueCount > 0 ? 'dash-kpi-val-red' : ''}`}>
                                     <AnimatedNumber value={overdueCount} />
                                 </div>
                                 <div className="dash-kpi-label">Overdue Books</div>
                             </div>
                             <div className="dash-kpi-split">
-                                <span>Final due date</span>
-                                <span className="fw-bold text-danger">Aug 14, 2026</span>
+                                {overdueCount > 0 ? (
+                                    <>
+                                        <span>Earliest due date</span>
+                                        <span className="fw-bold text-danger">{earliestDueStr || 'Overdue'}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Loan status</span>
+                                        <span className="fw-bold text-success">No Overdue Books</span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </Col>
@@ -303,16 +338,29 @@ const Dashboard = () => {
                                     <div className="dash-kpi-icon-box dash-kpi-icon-green">
                                         <span style={{ fontWeight: 800 }}>₹</span>
                                     </div>
-                                    <Link to="/payment" className="dash-pill-btn-pay">Pay Now</Link>
+                                    {pendingFinesVal > 0 ? (
+                                        <Link to="/payment" className="dash-pill-btn-pay">Pay Now</Link>
+                                    ) : (
+                                        <span className="dash-pill-tag-green">All Clear</span>
+                                    )}
                                 </div>
-                                <div className="dash-kpi-val">
+                                <div className={`dash-kpi-val ${pendingFinesVal > 0 ? 'dash-kpi-val-red' : ''}`}>
                                     ₹<AnimatedNumber value={pendingFinesVal} />
                                 </div>
                                 <div className="dash-kpi-label">Pending Fines</div>
                             </div>
                             <div className="dash-kpi-split">
-                                <span>Daily late fee rate</span>
-                                <span className="fw-bold text-dark">₹20 / day</span>
+                                {pendingFinesVal > 0 ? (
+                                    <>
+                                        <span>Daily late fee rate</span>
+                                        <span className="fw-bold text-dark">₹10 / day</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Account standing</span>
+                                        <span className="fw-bold text-success">Zero Penalties</span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </Col>
@@ -448,28 +496,24 @@ const Dashboard = () => {
                                                 <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
                                                     {/* Background Ring */}
                                                     <circle cx="18" cy="18" r="14" fill="none" stroke="#f1f5f9" strokeWidth="4" />
-                                                    {/* Green Segment (88%) */}
+                                                    {/* Green Segment (On-time ratio) */}
                                                     <circle
                                                         cx="18" cy="18" r="14" fill="none"
                                                         stroke="#059669" strokeWidth="4.2"
-                                                        strokeDasharray="77.4 88" strokeDashoffset="0"
+                                                        strokeDasharray={`${strokeGreen} 88`} strokeDashoffset="0"
                                                         strokeLinecap="round"
                                                     />
-                                                    {/* Yellow Segment (8%) */}
-                                                    <circle
-                                                        cx="18" cy="18" r="14" fill="none"
-                                                        stroke="#f59e0b" strokeWidth="4.2"
-                                                        strokeDasharray="7 88" strokeDashoffset="-78"
-                                                    />
-                                                    {/* Red Segment (4%) */}
-                                                    <circle
-                                                        cx="18" cy="18" r="14" fill="none"
-                                                        stroke="#ef4444" strokeWidth="4.2"
-                                                        strokeDasharray="3.6 88" strokeDashoffset="-85"
-                                                    />
+                                                    {/* Red Segment (Overdue ratio) */}
+                                                    {strokeRed > 0 && (
+                                                        <circle
+                                                            cx="18" cy="18" r="14" fill="none"
+                                                            stroke="#ef4444" strokeWidth="4.2"
+                                                            strokeDasharray={`${strokeRed} 88`} strokeDashoffset={`-${strokeGreen}`}
+                                                        />
+                                                    )}
                                                 </svg>
                                                 <div className="dash-donut-center-text">
-                                                    <div className="dash-donut-score">88%</div>
+                                                    <div className="dash-donut-score">{punctualityScore}%</div>
                                                     <div className="dash-donut-sub">ON-TIME</div>
                                                 </div>
                                             </div>
@@ -479,23 +523,16 @@ const Dashboard = () => {
                                                 <div className="d-flex align-items-center justify-content-between gap-3">
                                                     <span className="d-flex align-items-center gap-1.5 text-muted">
                                                         <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#059669', display: 'inline-block' }}></span>
-                                                        Strict On-Time
+                                                        On-Time / Active
                                                     </span>
-                                                    <span className="fw-bold">22 books</span>
-                                                </div>
-                                                <div className="d-flex align-items-center justify-content-between gap-3">
-                                                    <span className="d-flex align-items-center gap-1.5 text-muted">
-                                                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }}></span>
-                                                        Grace Extension
-                                                    </span>
-                                                    <span className="fw-bold">2 books</span>
+                                                    <span className="fw-bold">{onTimeCount} book{onTimeCount !== 1 ? 's' : ''}</span>
                                                 </div>
                                                 <div className="d-flex align-items-center justify-content-between gap-3">
                                                     <span className="d-flex align-items-center gap-1.5 text-muted">
                                                         <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444', display: 'inline-block' }}></span>
-                                                        Overdue Returns
+                                                        Overdue Items
                                                     </span>
-                                                    <span className="fw-bold text-danger">1 book</span>
+                                                    <span className={`fw-bold ${overdueCount > 0 ? 'text-danger' : ''}`}>{overdueCount} book{overdueCount !== 1 ? 's' : ''}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -504,7 +541,9 @@ const Dashboard = () => {
                                     {/* Honors Standing */}
                                     <div className="d-flex justify-content-between align-items-center pt-2 border-top border-light-subtle" style={{ fontSize: '0.78rem' }}>
                                         <span className="text-muted">Account standing</span>
-                                        <span className="fw-bold" style={{ color: '#059669' }}>✓ Eligible for Semester Honors</span>
+                                        <span className="fw-bold" style={{ color: punctualityScore >= 80 ? '#059669' : '#d97706' }}>
+                                            {punctualityScore >= 80 ? '✓ Eligible for Semester Honors' : 'Standard Good Standing'}
+                                        </span>
                                     </div>
                                 </div>
                             </Col>
@@ -518,80 +557,134 @@ const Dashboard = () => {
                                     Currently Reading & Loan Management
                                 </h5>
                                 <Link to="/my-books" className="text-decoration-none fw-bold" style={{ fontSize: '0.85rem', color: '#059669' }}>
-                                    View All ({displayedBooks.length}) →
+                                    View All ({allUserLoans.length}) →
                                 </Link>
                             </div>
 
-                            {/* Book Item Box */}
-                            {displayedBooks.map((borrow) => {
-                                const bookTitle = getLocalizedStr(borrow.book?.title, 'The Lean Startup');
-                                const bookAuthor = getLocalizedStr(borrow.book?.author, 'Eric Ries');
-                                const category = borrow.book?.category || 'Business / Tech Innovation';
-                                const issueDateStr = borrow.borrowDate ? new Date(borrow.borrowDate).toLocaleDateString() : '8/13/2026';
-                                const dueDateStr = borrow.dueDate ? new Date(borrow.dueDate).toLocaleDateString() : '8/14/2026';
-                                const isOverdue = borrow.status === 'overdue' || new Date(borrow.dueDate) < new Date();
-                                const coverImg = borrow.book?.coverImage || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&auto=format&fit=crop&q=80';
+                            {/* Book Item Box or Empty State */}
+                            {allUserLoans.length === 0 ? (
+                                <div className="text-center py-5 px-3">
+                                    <div style={{
+                                        width: '64px',
+                                        height: '64px',
+                                        borderRadius: '50%',
+                                        background: 'rgba(5, 150, 105, 0.1)',
+                                        color: '#059669',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '1.75rem',
+                                        marginBottom: '1rem'
+                                    }}>
+                                        <FiBook />
+                                    </div>
+                                    <h6 className="fw-bold text-dark mb-1">No Active Book Loans</h6>
+                                    <p className="text-muted small mb-3" style={{ maxWidth: '400px', margin: '0 auto' }}>
+                                        You don't have any borrowed books at the moment. Browse our catalog to request and borrow books.
+                                    </p>
+                                    <Link to="/books" className="btn btn-sm btn-success rounded-pill px-4 fw-semibold">
+                                        Browse Catalog →
+                                    </Link>
+                                </div>
+                            ) : (
+                                allUserLoans.map((borrow) => {
+                                    const bookTitle = getLocalizedStr(borrow.book?.title, 'Untitled Book');
+                                    const bookAuthor = getLocalizedStr(borrow.book?.author, 'Unknown Author');
+                                    const category = borrow.book?.category || 'General Collection';
+                                    const issueDate = borrow.borrowDate || borrow.createdAt;
+                                    const issueDateStr = issueDate ? new Date(issueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+                                    const dueDateStr = borrow.dueDate ? new Date(borrow.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
 
-                                return (
-                                    <div key={borrow._id} className="dash-book-loan-box">
-                                        <div className="d-flex align-items-center gap-3">
-                                            <img
-                                                src={coverImg}
-                                                alt={bookTitle}
-                                                className="dash-book-thumb"
-                                                onError={(e) => { e.target.src = 'https://placehold.co/52x74/065f46/ffffff?text=Book'; }}
-                                            />
-                                            <div>
-                                                <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                                                    <span className="fw-bold text-dark" style={{ fontSize: '1.05rem' }}>{bookTitle}</span>
-                                                    {isOverdue ? (
-                                                        <span className="dash-pill-tag-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>OVERDUE</span>
-                                                    ) : (
-                                                        <span className="dash-pill-tag-green" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>ACTIVE</span>
-                                                    )}
-                                                </div>
-                                                <div className="text-muted small mb-2">By {bookAuthor} • Category: {category}</div>
-                                                <div className="d-flex align-items-center gap-4 text-secondary" style={{ fontSize: '0.78rem' }}>
-                                                    <div>
-                                                        <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>Issue Date</span>
-                                                        <span className="fw-semibold text-dark">{issueDateStr}</span>
+                                    const now = new Date();
+                                    const due = borrow.dueDate ? new Date(borrow.dueDate) : null;
+                                    const diffDays = due ? Math.floor((now - due) / (1000 * 60 * 60 * 24)) : 0;
+                                    const isOverdue = borrow.status === 'overdue' || (due && due < now && !borrow.returnDate);
+
+                                    const coverImg = borrow.book?.coverImage?.startsWith('http')
+                                        ? borrow.book.coverImage
+                                        : (borrow.book?.coverImage ? `${API_URL.replace('/api', '')}${borrow.book.coverImage}` : 'https://placehold.co/400x600/065f46/ffffff?text=Book');
+
+                                    let statusTag = <span className="dash-pill-tag-green" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>ACTIVE</span>;
+                                    if (borrow.status === 'pending') {
+                                        statusTag = <span className="dash-pill-tag-amber" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>APPROVAL PENDING</span>;
+                                    } else if (borrow.status === 'return_pending') {
+                                        statusTag = <span className="dash-pill-tag-amber" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>RETURN VERIFICATION</span>;
+                                    } else if (isOverdue) {
+                                        statusTag = <span className="dash-pill-tag-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>OVERDUE</span>;
+                                    }
+
+                                    return (
+                                        <div key={borrow._id} className="dash-book-loan-box">
+                                            <div className="d-flex align-items-center gap-3">
+                                                <img
+                                                    src={coverImg}
+                                                    alt={bookTitle}
+                                                    className="dash-book-thumb"
+                                                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/52x74/065f46/ffffff?text=Book'; }}
+                                                />
+                                                <div>
+                                                    <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                                        <span className="fw-bold text-dark" style={{ fontSize: '1.05rem' }}>{bookTitle}</span>
+                                                        {statusTag}
+                                                        {borrow.accruedFine > 0 && (
+                                                            <span className="badge bg-danger-subtle text-danger rounded-pill px-2 py-0.5" style={{ fontSize: '0.68rem' }}>
+                                                                Fine: ₹{borrow.accruedFine}
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                    <div>
-                                                        <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>Original Due Date</span>
-                                                        <span className={`fw-semibold ${isOverdue ? 'text-danger' : 'text-dark'}`}>{dueDateStr}</span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>Days Exceeded</span>
-                                                        <span className="fw-bold text-danger">12 Days</span>
+                                                    <div className="text-muted small mb-2">By {bookAuthor} • Category: {category}</div>
+                                                    <div className="d-flex align-items-center gap-4 text-secondary" style={{ fontSize: '0.78rem' }}>
+                                                        <div>
+                                                            <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>Issue Date</span>
+                                                            <span className="fw-semibold text-dark">{issueDateStr}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>Due Date</span>
+                                                            <span className={`fw-semibold ${isOverdue ? 'text-danger' : 'text-dark'}`}>{dueDateStr}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-muted d-block" style={{ fontSize: '0.7rem' }}>
+                                                                {isOverdue ? 'Days Exceeded' : 'Remaining Time'}
+                                                            </span>
+                                                            <span className={`fw-bold ${isOverdue ? 'text-danger' : 'text-success'}`}>
+                                                                {isOverdue ? `${Math.max(1, diffDays)} Days Overdue` : `${Math.max(0, -diffDays)} Days Left`}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div className="d-flex align-items-center gap-2 ms-auto">
-                                            <button
-                                                onClick={() => handleRenew(borrow._id)}
-                                                className="dash-btn-renew"
-                                            >
-                                                Renew Loan
-                                            </button>
-                                            <button
-                                                onClick={() => setExtensionModal({ show: true, book: borrow })}
-                                                className="dash-btn-extend"
-                                            >
-                                                Request Extension
-                                            </button>
+                                            <div className="d-flex align-items-center gap-2 ms-auto">
+                                                {borrow.status === 'borrowed' || borrow.status === 'overdue' ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleRenew(borrow._id)}
+                                                            className="dash-btn-renew"
+                                                        >
+                                                            Renew Loan
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setExtensionModal({ show: true, book: borrow })}
+                                                            className="dash-btn-extend"
+                                                        >
+                                                            Request Extension
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-muted small">Awaiting Staff Action</span>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })
+                            )}
 
-                            {/* Exam Hold Alert Notice */}
+                            {/* Policy Notice */}
                             <div className="dash-policy-notice">
                                 <div className="d-flex align-items-center gap-2">
                                     <FiAlertCircle size={17} className="text-warning flex-shrink-0" />
                                     <span>
-                                        Please return or renew before August 30 to prevent automated institutional hold on Semester Exam hall tickets.
+                                        Books returned after the due date incur a statutory fee of ₹10/day (excluding Sundays & designated holidays).
                                     </span>
                                 </div>
                                 <Link to="/policy" className="fw-bold text-decoration-none" style={{ color: '#854d0e', whiteSpace: 'nowrap' }}>
@@ -619,26 +712,46 @@ const Dashboard = () => {
                                 </button>
                             </div>
 
-                            {/* Active Overdue Formula Banner */}
-                            <div className="dash-fine-banner">
-                                <div>
-                                    <div className="dash-pill-overdue-tag">ACTIVE OVERDUE</div>
-                                    <h6 className="fw-bold text-dark mb-1">The Lean Startup</h6>
-                                    <p className="text-muted small mb-2">Calculated formula: 12 days overdue × ₹20/day statutory late fee</p>
-                                    <div className="small text-success d-flex align-items-center gap-1" style={{ fontSize: '0.75rem' }}>
-                                        <FiCheckCircle size={13} />
-                                        <span>Daily late fee cap is ₹300 per book under JVIT Central Library Policy v2.4.</span>
+                            {/* Active Overdue Formula Banner or All Clear Banner */}
+                            {pendingFinesVal === 0 ? (
+                                <div className="dash-fine-banner" style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.03) 100%)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                    <div>
+                                        <div className="dash-pill-tag-green mb-2" style={{ width: 'fit-content' }}>ZERO PENDING DUES</div>
+                                        <h6 className="fw-bold text-dark mb-1">Account in Good Standing</h6>
+                                        <p className="text-muted small mb-2">You have no overdue books or pending fines. Keep up the punctuality!</p>
+                                        <div className="small text-success d-flex align-items-center gap-1" style={{ fontSize: '0.75rem' }}>
+                                            <FiCheckCircle size={13} />
+                                            <span>Standard borrow window is 14 days with ₹10/day grace late fee policy.</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-end d-flex flex-column align-items-end gap-1">
+                                        <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.68rem', letterSpacing: '0.5px' }}>Accrued Total</div>
+                                        <div className="fw-bold text-success" style={{ fontSize: '1.75rem', lineHeight: 1 }}>₹0</div>
+                                        <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill mt-1" style={{ padding: '4px 12px' }}>Compliant</span>
                                     </div>
                                 </div>
+                            ) : (
+                                <div className="dash-fine-banner">
+                                    <div>
+                                        <div className="dash-pill-overdue-tag">ACTIVE OVERDUE</div>
+                                        <h6 className="fw-bold text-dark mb-1">{primaryOverdueTitle}</h6>
+                                        <p className="text-muted small mb-2">{fineFormulaDesc}</p>
+                                        <div className="small text-success d-flex align-items-center gap-1" style={{ fontSize: '0.75rem' }}>
+                                            <FiCheckCircle size={13} />
+                                            <span>Daily late fee rate is ₹10 per day under JVIT Central Library Policy.</span>
+                                        </div>
+                                    </div>
 
-                                <div className="text-end d-flex flex-column align-items-end gap-1">
-                                    <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.68rem', letterSpacing: '0.5px' }}>Accrued Total</div>
-                                    <div className="fw-bold text-danger" style={{ fontSize: '1.75rem', lineHeight: 1 }}>₹{pendingFinesVal}</div>
-                                    <Link to="/payment" className="dash-btn-pay-fine-lg mt-1">
-                                        Pay Pending Fine (₹{pendingFinesVal})
-                                    </Link>
+                                    <div className="text-end d-flex flex-column align-items-end gap-1">
+                                        <div className="text-uppercase text-muted fw-bold" style={{ fontSize: '0.68rem', letterSpacing: '0.5px' }}>Accrued Total</div>
+                                        <div className="fw-bold text-danger" style={{ fontSize: '1.75rem', lineHeight: 1 }}>₹{pendingFinesVal}</div>
+                                        <Link to="/payment" className="dash-btn-pay-fine-lg mt-1">
+                                            Pay Pending Fine (₹{pendingFinesVal})
+                                        </Link>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Transaction Ledger Table */}
                             <div className="table-responsive">
@@ -653,45 +766,34 @@ const Dashboard = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {/* Row 1 */}
-                                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td className="py-3 ps-2">
-                                                <div className="fw-bold text-dark">Late Fee Paid (Operating Systems Concepts)</div>
-                                                <small className="text-muted">Txn ID: #TXN-948201</small>
-                                            </td>
-                                            <td className="py-3 text-secondary">Online UPI</td>
-                                            <td className="py-3 text-secondary">Aug 02, 2026</td>
-                                            <td className="py-3 fw-bold text-dark">₹180</td>
-                                            <td className="py-3 text-end pe-2">
-                                                <span className="dash-pill-tag-green">Successful</span>
-                                            </td>
-                                        </tr>
-                                        {/* Row 2 */}
-                                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td className="py-3 ps-2">
-                                                <div className="fw-bold text-dark">Book Reservation Charge (Cloud Arch Manual)</div>
-                                                <small className="text-muted">Txn ID: #TXN-881293</small>
-                                            </td>
-                                            <td className="py-3 text-secondary">Wallet Debit</td>
-                                            <td className="py-3 text-secondary">Jul 25, 2026</td>
-                                            <td className="py-3 fw-bold text-dark">₹60</td>
-                                            <td className="py-3 text-end pe-2">
-                                                <span className="badge bg-light text-secondary rounded-pill" style={{ padding: '4px 10px' }}>Settled</span>
-                                            </td>
-                                        </tr>
-                                        {/* Row 3 */}
-                                        <tr>
-                                            <td className="py-3 ps-2">
-                                                <div className="fw-bold text-dark">Holiday Grace Period Waiver (Independence Day)</div>
-                                                <small className="text-muted">Authorized by: Principal Office</small>
-                                            </td>
-                                            <td className="py-3 text-secondary">System Rebate</td>
-                                            <td className="py-3 text-secondary">Jun 18, 2026</td>
-                                            <td className="py-3 fw-bold text-success">-₹40</td>
-                                            <td className="py-3 text-end pe-2">
-                                                <span className="badge rounded-pill" style={{ background: '#f3e8ff', color: '#7e22ce', padding: '4px 10px' }}>Waived</span>
-                                            </td>
-                                        </tr>
+                                        {stats.payments && stats.payments.length > 0 ? (
+                                            stats.payments.slice(0, 5).map((pay) => (
+                                                <tr key={pay._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                    <td className="py-3 ps-2">
+                                                        <div className="fw-bold text-dark">
+                                                            {pay.description || (pay.paymentType === 'fine' ? 'Late Fee Settlement' : 'Library Payment')}
+                                                        </div>
+                                                        <small className="text-muted">Txn ID: #{pay.transactionId || pay._id.slice(-8).toUpperCase()}</small>
+                                                    </td>
+                                                    <td className="py-3 text-secondary text-capitalize">{pay.paymentMethod || 'Online'}</td>
+                                                    <td className="py-3 text-secondary">
+                                                        {new Date(pay.paidAt || pay.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                    </td>
+                                                    <td className="py-3 fw-bold text-dark">₹{pay.amount}</td>
+                                                    <td className="py-3 text-end pe-2">
+                                                        <span className={pay.status === 'completed' ? 'dash-pill-tag-green' : (pay.status === 'failed' ? 'dash-pill-tag-red' : 'dash-pill-tag-amber')}>
+                                                            {pay.status === 'completed' ? 'Successful' : (pay.status === 'failed' ? 'Failed' : 'Pending')}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="5" className="text-center py-4 text-muted small">
+                                                    No transaction records found yet. Settled fine payments and receipts will appear here.
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -709,8 +811,8 @@ const Dashboard = () => {
                                 <span className="dash-online-dot" title="Active Online Beacon"></span>
                             </div>
 
-                            <h4 className="dash-user-name">{user?.name || 'Vinay kumar HM'}</h4>
-                            <p className="dash-user-email">{user?.email || 'vinaykumarhm@gmail.com'}</p>
+                            <h4 className="dash-user-name">{user?.name || 'Student Member'}</h4>
+                            <p className="dash-user-email">{user?.email || 'student@jvit.edu.in'}</p>
 
                             <div className="dash-user-info-box">
                                 <div className="d-flex justify-content-between align-items-center mb-2">
@@ -731,9 +833,15 @@ const Dashboard = () => {
                                 <FiUser size={15} /> EDIT PROFILE
                             </Link>
 
-                            <Link to="/payment" className="dash-btn-pay-fines-full">
-                                <span>₹</span> PAY FINES (₹{pendingFinesVal})
-                            </Link>
+                            {pendingFinesVal > 0 ? (
+                                <Link to="/payment" className="dash-btn-pay-fines-full">
+                                    <span>₹</span> PAY FINES (₹{pendingFinesVal})
+                                </Link>
+                            ) : (
+                                <div className="dash-btn-pay-fines-full" style={{ background: '#059669', opacity: 0.9, cursor: 'default' }}>
+                                    <FiCheckCircle size={15} /> NO PENDING FINES (₹0)
+                                </div>
+                            )}
                         </div>
 
                         {/* 2. WEEKLY LEARNING GOAL */}
@@ -826,32 +934,50 @@ const Dashboard = () => {
                     <Modal.Title className="fw-bold">Official Library Receipt</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="p-4">
-                    <div className="p-3 border rounded-3 bg-light text-center mb-3">
-                        <h5 className="fw-bold text-success mb-1">JVIT Central Library</h5>
-                        <div className="text-muted small">Jnana Vikas Institute of Technology</div>
-                        <div className="text-muted small">Receipt No: #REC-2026-948201</div>
-                    </div>
-                    <div className="d-flex justify-content-between mb-2">
-                        <span className="text-muted">Member Name:</span>
-                        <span className="fw-bold">{user?.name}</span>
-                    </div>
-                    <div className="d-flex justify-content-between mb-2">
-                        <span className="text-muted">Library Card ID:</span>
-                        <span className="fw-bold">{libraryCardId}</span>
-                    </div>
-                    <div className="d-flex justify-content-between mb-2">
-                        <span className="text-muted">Item / Description:</span>
-                        <span className="fw-bold">Late Return Fine Settlement</span>
-                    </div>
-                    <div className="d-flex justify-content-between mb-2">
-                        <span className="text-muted">Payment Channel:</span>
-                        <span className="fw-bold">Online UPI / Verified</span>
-                    </div>
-                    <hr />
-                    <div className="d-flex justify-content-between fw-bold fs-5">
-                        <span>Total Paid:</span>
-                        <span className="text-success">₹180.00</span>
-                    </div>
+                    {latestCompletedPayment ? (
+                        <>
+                            <div className="p-3 border rounded-3 bg-light text-center mb-3">
+                                <h5 className="fw-bold text-success mb-1">JVIT Central Library</h5>
+                                <div className="text-muted small">Jnana Vikas Institute of Technology</div>
+                                <div className="text-muted small">
+                                    Receipt No: #REC-{latestCompletedPayment.transactionId || latestCompletedPayment._id.slice(-8).toUpperCase()}
+                                </div>
+                            </div>
+                            <div className="d-flex justify-content-between mb-2">
+                                <span className="text-muted">Member Name:</span>
+                                <span className="fw-bold">{user?.name}</span>
+                            </div>
+                            <div className="d-flex justify-content-between mb-2">
+                                <span className="text-muted">Library Card ID:</span>
+                                <span className="fw-bold">{libraryCardId}</span>
+                            </div>
+                            <div className="d-flex justify-content-between mb-2">
+                                <span className="text-muted">Item / Description:</span>
+                                <span className="fw-bold">{latestCompletedPayment.description || 'Library Fine Payment'}</span>
+                            </div>
+                            <div className="d-flex justify-content-between mb-2">
+                                <span className="text-muted">Payment Channel:</span>
+                                <span className="fw-bold text-capitalize">{latestCompletedPayment.paymentMethod || 'Online'} / Verified</span>
+                            </div>
+                            <div className="d-flex justify-content-between mb-2">
+                                <span className="text-muted">Payment Date:</span>
+                                <span className="fw-semibold">
+                                    {new Date(latestCompletedPayment.paidAt || latestCompletedPayment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                            </div>
+                            <hr />
+                            <div className="d-flex justify-content-between fw-bold fs-5">
+                                <span>Total Paid:</span>
+                                <span className="text-success">₹{latestCompletedPayment.amount}.00</span>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="text-center py-4 text-muted">
+                            <FiFileText size={36} className="mb-2 text-secondary opacity-50" />
+                            <p className="mb-0">No completed payment records found to generate a receipt.</p>
+                            <small>Completed fine settlements will be printable here.</small>
+                        </div>
+                    )}
                 </Modal.Body>
                 <Modal.Footer className="border-0 pt-0">
                     <Button variant="secondary" size="sm" onClick={() => setReceiptModal(false)}>Close</Button>
@@ -866,7 +992,7 @@ const Dashboard = () => {
                 </Modal.Header>
                 <Modal.Body className="p-4">
                     <p className="text-muted">
-                        Submit a formal extension request for <strong>{getLocalizedStr(extensionModal.book?.book?.title, 'The Lean Startup')}</strong> to the chief librarian.
+                        Submit a formal extension request for <strong>{getLocalizedStr(extensionModal.book?.book?.title, 'Selected Book')}</strong> to the chief librarian.
                     </p>
                     <div className="mb-3">
                         <label className="form-label small fw-bold">Extension Duration</label>

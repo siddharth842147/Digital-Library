@@ -210,16 +210,24 @@ exports.verifyPayment = async (req, res) => {
         // Update user's fines if payment type is fine
         if (payment.paymentType === 'fine') {
             const user = await User.findById(payment.user);
-            user.totalFines -= payment.amount;
-            await user.save();
+            if (user) {
+                user.totalFines = Math.max(0, (user.totalFines || 0) - payment.amount);
+                await user.save();
+            }
 
             // Update borrow record if associated
             if (payment.borrow) {
                 const borrow = await Borrow.findById(payment.borrow);
                 if (borrow) {
                     borrow.finePaid = true;
+                    borrow.fine = 0;
                     await borrow.save();
                 }
+            } else {
+                await Borrow.updateMany(
+                    { user: payment.user, status: 'overdue' },
+                    { finePaid: true, fine: 0 }
+                );
             }
         }
 
@@ -613,15 +621,23 @@ exports.verifyManualPayment = async (req, res) => {
             // Business Logic Updates
             if (payment.paymentType === 'fine') {
                 const user = await User.findById(payment.user._id);
-                user.totalFines -= payment.amount;
-                await user.save();
+                if (user) {
+                    user.totalFines = Math.max(0, (user.totalFines || 0) - payment.amount);
+                    await user.save();
+                }
 
                 if (payment.borrow) {
                     const borrow = await Borrow.findById(payment.borrow);
                     if (borrow) {
                         borrow.finePaid = true;
+                        borrow.fine = 0;
                         await borrow.save();
                     }
+                } else {
+                    await Borrow.updateMany(
+                        { user: payment.user._id, status: 'overdue' },
+                        { finePaid: true, fine: 0 }
+                    );
                 }
             }
 

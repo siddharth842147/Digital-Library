@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 
 const Payment = () => {
-    const { user } = useAuth();
+    const { user, loadUser } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [adminDetails, setAdminDetails] = useState(null);
@@ -98,6 +98,7 @@ const Payment = () => {
 
                         if (verifyResponse.success) {
                             toast.success('Mock Payment successful! Your fines have been cleared.');
+                            if (loadUser) await loadUser();
                             navigate('/payment-history');
                         } else {
                             toast.error('Mock Payment verification failed.');
@@ -109,13 +110,18 @@ const Payment = () => {
                 return;
             }
 
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const rzpLogo = (!isLocalhost && window.location.protocol === 'https:')
+                ? `${window.location.origin}/logo.jpg`
+                : undefined;
+
             const options = {
                 key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_demo',
                 amount: amount * 100,
                 currency: currency,
                 name: 'JVIT Digital Library',
-                description: `Fine Payment for ${user?.name}`,
-                image: '/logo.jpg',
+                description: `Fine Payment for ${user?.name || 'Student'}`,
+                ...(rzpLogo ? { image: rzpLogo } : {}),
                 order_id: orderId,
                 config: {
                     display: {
@@ -144,6 +150,7 @@ const Payment = () => {
 
                         if (verifyResponse.success) {
                             toast.success('Payment successful! Your fines have been cleared.');
+                            if (loadUser) await loadUser();
                             navigate('/payment-history');
                         } else {
                             toast.error('Payment verification failed.');
@@ -204,6 +211,7 @@ const Payment = () => {
             toast.success(response.data.message);
             setFineAmount(response.data.data.totalFines);
             setCoins(response.data.data.coins);
+            if (loadUser) await loadUser();
         } catch(error) {
             toast.error(error.response?.data?.message || 'Error applying coins');
         } finally {
