@@ -1803,8 +1803,55 @@ a:hover {
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  position: relative;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
+
+.dash-chart-peak-box::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px 4px 0 4px;
+  border-style: solid;
+  border-color: #0f172a transparent transparent transparent;
+}
+
+[data-theme="dark"] .dash-chart-peak-box {
+  background: #1e293b;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .dash-chart-peak-box::after {
+  border-color: #1e293b transparent transparent transparent;
+}
+
+.dash-chart-active-ring {
+  animation: dash-pulse-ring 1.4s ease-out infinite;
+  transform-origin: center;
+}
+
+@keyframes dash-pulse-ring {
+  0% {
+    r: 6.5px;
+    opacity: 0.85;
+  }
+  60% {
+    r: 10px;
+    opacity: 0.2;
+  }
+  100% {
+    r: 6.5px;
+    opacity: 0.85;
+  }
+}
+
 
 /* Donut Chart */
 .dash-donut-wrap {

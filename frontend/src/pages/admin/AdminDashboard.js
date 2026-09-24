@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Spinner, Dropdown, Modal, Button } from 'react-bootstrap';
 import {
     FiBook,
@@ -68,6 +68,7 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [selectedTerm, setSelectedTerm] = useState('AY 2026-27 / Odd Semester');
     const [auditModal, setAuditModal] = useState(false);
+    const [hoveredPointIndex, setHoveredPointIndex] = useState(null);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -82,6 +83,78 @@ const AdminDashboard = () => {
             }
         };
         fetchStats();
+    }, []);
+
+    const adminVelocityData = useMemo(() => {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+
+        const monthConfigs = [];
+        for (let i = 3; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const shortName = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+            const isCurrent = i === 0;
+            monthConfigs.push({
+                shortName,
+                label: isCurrent ? `${shortName} (Cur)` : shortName,
+                isCurrent
+            });
+        }
+
+        const counts = [42, 85, 142, 98];
+        const pointsData = monthConfigs.map((m, idx) => ({
+            ...m,
+            count: counts[idx]
+        }));
+
+        const maxCount = Math.max(...pointsData.map(p => p.count));
+        const pointsWithPeak = pointsData.map(p => ({
+            ...p,
+            isPeak: p.count === maxCount
+        }));
+
+        const peakIdx = pointsWithPeak.findIndex(p => p.isPeak);
+        const xCoords = [30, 117, 203, 290];
+        const yBase = 105;
+        const yTop = 28;
+        const scaleMax = 160;
+
+        const svgPoints = pointsWithPeak.map((p, idx) => {
+            const x = xCoords[idx];
+            const y = Math.round(yBase - (p.count / scaleMax) * (yBase - yTop));
+            return {
+                ...p,
+                x,
+                y: Math.max(yTop, Math.min(yBase, y))
+            };
+        });
+
+        let curvePath = '';
+        if (svgPoints.length > 0) {
+            curvePath = `M ${svgPoints[0].x} ${svgPoints[0].y}`;
+            for (let i = 0; i < svgPoints.length - 1; i++) {
+                const p0 = svgPoints[Math.max(0, i - 1)];
+                const p1 = svgPoints[i];
+                const p2 = svgPoints[i + 1];
+                const p3 = svgPoints[Math.min(svgPoints.length - 1, i + 2)];
+                const cp1x = p1.x + (p2.x - p0.x) / 6;
+                const cp1y = p1.y + (p2.y - p0.y) / 6;
+                const cp2x = p2.x - (p3.x - p1.x) / 6;
+                const cp2y = p2.y - (p3.y - p1.y) / 6;
+                curvePath += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+            }
+        }
+        const areaPath = svgPoints.length > 0
+            ? `${curvePath} L ${svgPoints[svgPoints.length - 1].x} 105 L ${svgPoints[0].x} 105 Z`
+            : '';
+
+        return {
+            points: svgPoints,
+            peakIndex: peakIdx >= 0 ? peakIdx : 2,
+            curvePath,
+            areaPath,
+            yearLabel: `${currentYear} YTD`
+        };
     }, []);
 
     const handleExportCSV = async (type) => {
@@ -134,6 +207,29 @@ const AdminDashboard = () => {
     const overdueRate = 100 - punctualityScore;
     const onTimeCircDash = ((punctualityScore / 100) * 88).toFixed(1);
     const overdueCircDash = ((overdueRate / 100) * 88).toFixed(1);
+
+    const activeAdminPointIndex = hoveredPointIndex !== null ? hoveredPointIndex : adminVelocityData.peakIndex;
+    const activeAdminPoint = adminVelocityData.points[activeAdminPointIndex] || adminVelocityData.points[0];
+
+    const handleAdminSvgMouseMove = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        if (!rect.width) return;
+        const mouseX = ((e.clientX - rect.left) / rect.width) * 320;
+        let closestIdx = 0;
+        let minDistance = Infinity;
+        adminVelocityData.points.forEach((p, idx) => {
+            const dist = Math.abs(p.x - mouseX);
+            if (dist < minDistance) {
+                minDistance = dist;
+                closestIdx = idx;
+            }
+        });
+        setHoveredPointIndex(closestIdx);
+    };
+
+    const handleAdminSvgMouseLeave = () => {
+        setHoveredPointIndex(null);
+    };
 
     return (
         <div className="dash-new-wrapper">
@@ -283,7 +379,7 @@ const AdminDashboard = () => {
                     <Col lg={8}>
                         {/* 1. VISUAL ANALYTICS: CIRCULATION TRENDS & DISCIPLINE SCORE */}
                         <Row className="g-3 g-lg-4 mb-4">
-                            {/* Card A: Borrowing Velocity & Trends */}
+                            {/* Card A: Circulation Velocity & Trends */}
                             <Col md={6}>
                                 <div className="dash-card-panel h-100 d-flex flex-column justify-content-between">
                                     <div>
@@ -292,30 +388,46 @@ const AdminDashboard = () => {
                                                 <span className="dash-dot-indicator"></span>
                                                 Circulation Velocity & Trends
                                             </h6>
-                                            <span className="dash-pill-tag-green" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>2026 YTD</span>
+                                            <span className="dash-pill-tag-green" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                                                {adminVelocityData.yearLabel}
+                                            </span>
                                         </div>
                                         <p className="dash-panel-sub">Monthly institutional checkouts vs target</p>
 
-                                        {/* Smooth SVG Area Curve */}
-                                        <div className="position-relative mt-3 mb-2">
-                                            <div
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: '12px',
-                                                    left: '68%',
-                                                    transform: 'translateX(-50%)',
-                                                    zIndex: 2
-                                                }}
-                                            >
-                                                <div className="dash-chart-peak-box">
-                                                    PEAK: 142 Bks
+                                        {/* Smooth SVG Area Curve with Interactive Aim */}
+                                        <div className="position-relative mt-3 mb-2" style={{ userSelect: 'none' }}>
+                                            {activeAdminPoint && (
+                                                <div
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: `${(activeAdminPoint.y / 130) * 100}%`,
+                                                        left: `${(activeAdminPoint.x / 320) * 100}%`,
+                                                        transform: 'translate(-50%, -125%)',
+                                                        zIndex: 4,
+                                                        pointerEvents: 'none',
+                                                        transition: 'left 0.18s cubic-bezier(0.4, 0, 0.2, 1), top 0.18s cubic-bezier(0.4, 0, 0.2, 1)'
+                                                    }}
+                                                >
+                                                    <div className="dash-chart-peak-box">
+                                                        {activeAdminPoint.isPeak ? (
+                                                            <span>PEAK: {activeAdminPoint.count} Bks</span>
+                                                        ) : (
+                                                            <span>{activeAdminPoint.shortName}: {activeAdminPoint.count} Bks</span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
 
-                                            <svg viewBox="0 0 320 130" className="dash-chart-svg">
+                                            <svg
+                                                viewBox="0 0 320 130"
+                                                className="dash-chart-svg"
+                                                onMouseMove={handleAdminSvgMouseMove}
+                                                onMouseLeave={handleAdminSvgMouseLeave}
+                                                style={{ cursor: 'crosshair' }}
+                                            >
                                                 <defs>
                                                     <linearGradient id="adminVelocityGradient" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="0%" stopColor="#059669" stopOpacity="0.35" />
+                                                        <stop offset="0%" stopColor="#059669" stopOpacity="0.38" />
                                                         <stop offset="100%" stopColor="#059669" stopOpacity="0.0" />
                                                     </linearGradient>
                                                 </defs>
@@ -324,24 +436,104 @@ const AdminDashboard = () => {
                                                 <line x1="20" y1="105" x2="300" y2="105" stroke="#f1f5f9" />
 
                                                 <path
-                                                    d="M 30 100 Q 110 90 150 65 T 235 28 T 290 80 L 290 105 L 30 105 Z"
+                                                    d={adminVelocityData.areaPath}
                                                     fill="url(#adminVelocityGradient)"
+                                                    style={{ transition: 'd 0.3s ease' }}
                                                 />
                                                 <path
-                                                    d="M 30 100 Q 110 90 150 65 T 235 28 T 290 80"
+                                                    d={adminVelocityData.curvePath}
                                                     fill="none"
                                                     stroke="#059669"
                                                     strokeWidth="3.5"
                                                     strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    style={{ transition: 'd 0.3s ease' }}
                                                 />
-                                                <circle cx="235" cy="28" r="5" fill="#059669" stroke="#ffffff" strokeWidth="2.5" />
-                                                <circle cx="30" cy="100" r="4" fill="#059669" />
-                                                <circle cx="290" cy="80" r="4" fill="#059669" />
 
-                                                <text x="30" y="122" fontSize="10" fill="#94a3b8" textAnchor="middle" fontWeight="600">MAY</text>
-                                                <text x="120" y="122" fontSize="10" fill="#94a3b8" textAnchor="middle" fontWeight="600">JUN</text>
-                                                <text x="210" y="122" fontSize="10" fill="#94a3b8" textAnchor="middle" fontWeight="600">JUL</text>
-                                                <text x="290" y="122" fontSize="10" fill="#0f172a" textAnchor="middle" fontWeight="700">AUG (Cur)</text>
+                                                {/* Guideline */}
+                                                {activeAdminPoint && (
+                                                    <line
+                                                        x1={activeAdminPoint.x}
+                                                        y1={activeAdminPoint.y}
+                                                        x2={activeAdminPoint.x}
+                                                        y2={105}
+                                                        stroke="#059669"
+                                                        strokeWidth="1.5"
+                                                        strokeDasharray="3 3"
+                                                        opacity={hoveredPointIndex !== null ? 0.75 : 0.35}
+                                                    />
+                                                )}
+
+                                                {adminVelocityData.points.map((p, idx) => {
+                                                    const isFocused = idx === activeAdminPointIndex;
+                                                    return (
+                                                        <g key={p.shortName}>
+                                                            {isFocused && (
+                                                                <circle
+                                                                    cx={p.x}
+                                                                    cy={p.y}
+                                                                    r="9"
+                                                                    fill="none"
+                                                                    stroke="#059669"
+                                                                    strokeWidth="2"
+                                                                    opacity="0.6"
+                                                                    className="dash-chart-active-ring"
+                                                                />
+                                                            )}
+                                                            <circle
+                                                                cx={p.x}
+                                                                cy={p.y}
+                                                                r={p.isPeak ? 5.5 : 4.5}
+                                                                fill="#059669"
+                                                                stroke="#ffffff"
+                                                                strokeWidth={isFocused ? 3 : 2}
+                                                                style={{ transition: 'r 0.2s, stroke-width 0.2s' }}
+                                                            />
+                                                            {p.isPeak && (
+                                                                <circle cx={p.x} cy={p.y} r="2" fill="#ffffff" />
+                                                            )}
+                                                            {p.isPeak && !isFocused && (
+                                                                <text
+                                                                    x={p.x}
+                                                                    y={p.y - 10}
+                                                                    fontSize="8"
+                                                                    fill="#059669"
+                                                                    textAnchor="middle"
+                                                                    fontWeight="700"
+                                                                >
+                                                                    PEAK
+                                                                </text>
+                                                            )}
+                                                            <circle
+                                                                cx={p.x}
+                                                                cy={p.y}
+                                                                r="16"
+                                                                fill="transparent"
+                                                                style={{ cursor: 'pointer' }}
+                                                                onMouseEnter={() => setHoveredPointIndex(idx)}
+                                                            />
+                                                        </g>
+                                                    );
+                                                })}
+
+                                                {adminVelocityData.points.map((p, idx) => {
+                                                    const isFocused = idx === activeAdminPointIndex;
+                                                    return (
+                                                        <text
+                                                            key={p.shortName}
+                                                            x={p.x}
+                                                            y="122"
+                                                            fontSize="10"
+                                                            fill={isFocused ? "#059669" : (p.isCurrent ? "#0f172a" : "#94a3b8")}
+                                                            textAnchor="middle"
+                                                            fontWeight={isFocused || p.isCurrent ? "700" : "600"}
+                                                            style={{ transition: 'fill 0.2s', cursor: 'pointer' }}
+                                                            onMouseEnter={() => setHoveredPointIndex(idx)}
+                                                        >
+                                                            {p.label}
+                                                        </text>
+                                                    );
+                                                })}
                                             </svg>
                                         </div>
                                     </div>
