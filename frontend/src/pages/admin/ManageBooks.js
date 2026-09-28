@@ -6,14 +6,7 @@ import { toast } from 'react-toastify';
 import { Html5Qrcode } from 'html5-qrcode';
 import axios from 'axios';
 import { API_URL } from '../../config/api';
-
-const getLocalizedStr = (field, defaultVal = '') => {
-    if (!field) return defaultVal;
-    if (typeof field === 'object') {
-        return field.en || field.hi || Object.values(field)[0] || defaultVal;
-    }
-    return field;
-};
+import { getLocalizedStr } from '../../utils/localization';
 
 const ManageBooks = () => {
     const [books, setBooks] = useState([]);
@@ -431,7 +424,7 @@ const ManageBooks = () => {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="font-monospace small">{book.isbn}</td>
+                                                <td className="font-monospace small">{getLocalizedStr(book.isbn, 'N/A')}</td>
                                                 <td><Badge bg="light" text="primary">{getLocalizedStr(book.category)}</Badge></td>
                                                 <td>
                                                     <div className="fw-bold">{book.availableCopies} / {book.totalCopies}</div>

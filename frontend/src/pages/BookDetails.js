@@ -8,14 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { API_URL } from '../config/api';
-
-const getLocalizedStr = (field, defaultVal = '') => {
-    if (!field) return defaultVal;
-    if (typeof field === 'object') {
-        return field.en || field.hi || Object.values(field)[0] || defaultVal;
-    }
-    return field;
-};
+import { getLocalizedStr } from '../utils/localization';
 
 const BookDetails = () => {
     const { id } = useParams();
@@ -185,11 +178,11 @@ const BookDetails = () => {
                                 style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: '500px' }}
                             />
                             <Badge
-                                bg={book.status === 'Available' ? 'success' : 'danger'}
+                                bg={String(getLocalizedStr(book.status)).toLowerCase() === 'available' ? 'success' : 'danger'}
                                 className="position-absolute top-0 end-0 m-4 px-3 py-2"
                                 style={{ fontSize: '1rem', borderRadius: 'var(--radius-pill)' }}
                             >
-                                {book.status}
+                                {getLocalizedStr(book.status, 'Available')}
                             </Badge>
                         </Col>
 
@@ -220,7 +213,7 @@ const BookDetails = () => {
                                             <div className="p-3 bg-light rounded-circle text-primary"><FiHash /></div>
                                             <div>
                                                 <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>ISBN</small>
-                                                <span className="fw-bold">{book.isbn}</span>
+                                                <span className="fw-bold">{getLocalizedStr(book.isbn, 'N/A')}</span>
                                             </div>
                                         </div>
                                     </Col>
@@ -229,7 +222,7 @@ const BookDetails = () => {
                                             <div className="p-3 bg-light rounded-circle text-primary"><FiLayers /></div>
                                             <div>
                                                 <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>Published By</small>
-                                                <span className="fw-bold">{getLocalizedStr(book.publisher)}</span>
+                                                <span className="fw-bold">{getLocalizedStr(book.publisher, 'N/A')}</span>
                                             </div>
                                         </div>
                                     </Col>
@@ -238,7 +231,7 @@ const BookDetails = () => {
                                             <div className="p-3 bg-light rounded-circle text-primary"><FiCalendar /></div>
                                             <div>
                                                 <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>Year</small>
-                                                <span className="fw-bold">{book.publishedYear}</span>
+                                                <span className="fw-bold">{getLocalizedStr(book.publishedYear, 'N/A')}</span>
                                             </div>
                                         </div>
                                     </Col>
@@ -247,7 +240,7 @@ const BookDetails = () => {
                                             <div className="p-3 bg-light rounded-circle text-primary"><FiBook /></div>
                                             <div>
                                                 <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>Pages</small>
-                                                <span className="fw-bold">{book.pages}</span>
+                                                <span className="fw-bold">{getLocalizedStr(book.pages, 'N/A')}</span>
                                             </div>
                                         </div>
                                     </Col>

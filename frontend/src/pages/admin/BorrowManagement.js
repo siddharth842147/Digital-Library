@@ -5,14 +5,7 @@ import { getBorrowHistory, approveBorrow, verifyReturn } from '../../services/bo
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { Tabs, Tab } from 'react-bootstrap';
-
-const getLocalizedStr = (field, defaultVal = '') => {
-    if (!field) return defaultVal;
-    if (typeof field === 'object') {
-        return field.en || field.hi || Object.values(field)[0] || defaultVal;
-    }
-    return field;
-};
+import { getLocalizedStr } from '../../utils/localization';
 
 const BorrowManagement = () => {
     const { user: loggedInUser } = useAuth();

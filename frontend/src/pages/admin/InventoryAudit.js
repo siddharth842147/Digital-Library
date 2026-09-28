@@ -2,14 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Badge, Spinner } from 'react-bootstrap';
 import { getBooks } from '../../services/bookService';
 import { FiAlertTriangle } from 'react-icons/fi';
-
-const getLocalizedStr = (field, defaultVal = '') => {
-    if (!field) return defaultVal;
-    if (typeof field === 'object') {
-        return field.en || field.hi || Object.values(field)[0] || defaultVal;
-    }
-    return field;
-};
+import { getLocalizedStr } from '../../utils/localization';
 
 const InventoryAudit = () => {
     const [lowStockBooks, setLowStockBooks] = useState([]);

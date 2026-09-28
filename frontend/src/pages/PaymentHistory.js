@@ -5,6 +5,7 @@ import { getPaymentHistory, sendReceiptEmail, downloadReceipt } from '../service
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { API_URL } from '../config/api';
+import { getLocalizedStr } from '../utils/localization';
 
 const PaymentHistory = () => {
     const { user } = useAuth();
@@ -100,10 +101,10 @@ const PaymentHistory = () => {
                                                         <div className="text-muted" style={{ fontSize: '0.75rem' }}>{payment.user?.email}</div>
                                                     </td>
                                                 )}
-                                                <td>
+                                                 <td>
                                                     <div className="d-flex align-items-center gap-2">
                                                         <FiFileText className="text-muted" />
-                                                        <span className="text-capitalize">{payment.paymentType}</span>
+                                                        <span className="text-capitalize">{getLocalizedStr(payment.paymentType, 'fine')}</span>
                                                     </div>
                                                 </td>
                                                 <td className="fw-bold text-success">₹{payment.amount}</td>
@@ -112,7 +113,7 @@ const PaymentHistory = () => {
                                                 </td>
                                                 <td>
                                                     <Badge bg={payment.status === 'completed' || payment.status === 'success' ? 'success' : 'warning'} pill>
-                                                        {payment.status}
+                                                        {getLocalizedStr(payment.status, 'pending')}
                                                     </Badge>
                                                 </td>
                                                 <td className="text-end px-4">

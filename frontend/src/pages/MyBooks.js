@@ -6,14 +6,7 @@ import { getMyBorrowedBooks, returnBook } from '../services/borrowService';
 import { API_URL } from '../config/api';
 import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
-
-const getLocalizedStr = (field, defaultVal = '') => {
-    if (!field) return defaultVal;
-    if (typeof field === 'object') {
-        return field.en || field.hi || Object.values(field)[0] || defaultVal;
-    }
-    return field;
-};
+import { getLocalizedStr } from '../utils/localization';
 
 const MyBooks = () => {
     const [borrows, setBorrows] = useState([]);

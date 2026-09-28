@@ -8,14 +8,7 @@ import axios from 'axios';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
-
-const getLocalizedStr = (field, defaultVal = '') => {
-    if (!field) return defaultVal;
-    if (typeof field === 'object') {
-        return field.en || field.hi || Object.values(field)[0] || defaultVal;
-    }
-    return field;
-};
+import { getLocalizedStr } from '../utils/localization';
 
 const Books = () => {
     const { user } = useAuth();
@@ -212,7 +205,7 @@ const Books = () => {
                         >
                             <option value="all">All Categories</option>
                             {categories.map((cat) => {
-                                const catStr = typeof cat === 'object' && cat ? (cat.en || cat.hi || Object.values(cat)[0]) : cat;
+                                const catStr = getLocalizedStr(cat, 'General');
                                 return <option key={catStr} value={catStr}>{catStr}</option>;
                             })}
                         </Form.Select>

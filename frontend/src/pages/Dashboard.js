@@ -24,14 +24,7 @@ import { getMyBorrowedBooks, getBorrowHistory, renewBook } from '../services/bor
 import { getPaymentHistory } from '../services/paymentService';
 import { Link, Navigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-
-const getLocalizedStr = (field, defaultVal = '') => {
-    if (!field) return defaultVal;
-    if (typeof field === 'object') {
-        return field.en || field.hi || Object.values(field)[0] || defaultVal;
-    }
-    return field;
-};
+import { getLocalizedStr } from '../utils/localization';
 
 const AnimatedNumber = ({ value }) => {
     const [count, setCount] = useState(0);
@@ -321,7 +314,9 @@ const Dashboard = () => {
     const handleExportStatement = () => {
         const headers = "Type,Title/Reference,Issue Date,Due Date,Status,Amount (INR)\n";
         const borrowRows = (stats?.borrows || []).map(b => {
-            const title = `"${(b.book?.title || 'Book').replace(/"/g, '""')} - ${(b.book?.author || '').replace(/"/g, '""')}"`;
+            const titleStr = getLocalizedStr(b.book?.title, 'Book');
+            const authorStr = getLocalizedStr(b.book?.author, '');
+            const title = `"${titleStr.replace(/"/g, '""')} - ${authorStr.replace(/"/g, '""')}"`;
             const issue = b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : '';
             const due = b.dueDate ? new Date(b.dueDate).toISOString().split('T')[0] : '';
             const status = b.status || 'Active';
@@ -330,7 +325,8 @@ const Dashboard = () => {
         });
 
         const paymentRows = (stats?.payments || []).map(p => {
-            const desc = `"${(p.description || (p.paymentType === 'fine' ? 'Late Fee Paid' : 'Library Fee')).replace(/"/g, '""')}"`;
+            const descStr = getLocalizedStr(p.description, p.paymentType === 'fine' ? 'Late Fee Paid' : 'Library Fee');
+            const desc = `"${descStr.replace(/"/g, '""')}"`;
             const date = p.paidAt || p.createdAt ? new Date(p.paidAt || p.createdAt).toISOString().split('T')[0] : '';
             return `Payment,${desc},${date},${date},Successful,${p.amount || 0}`;
         });
@@ -891,7 +887,7 @@ const Dashboard = () => {
                                 allUserLoans.map((borrow) => {
                                     const bookTitle = getLocalizedStr(borrow.book?.title, 'Untitled Book');
                                     const bookAuthor = getLocalizedStr(borrow.book?.author, 'Unknown Author');
-                                    const category = borrow.book?.category || 'General Collection';
+                                    const category = getLocalizedStr(borrow.book?.category, 'General Collection');
                                     const issueDate = borrow.borrowDate || borrow.createdAt;
                                     const issueDateStr = issueDate ? new Date(issueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
                                     const dueDateStr = borrow.dueDate ? new Date(borrow.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
@@ -1072,7 +1068,7 @@ const Dashboard = () => {
                                                 <tr key={pay._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                                     <td className="py-3 ps-2">
                                                         <div className="fw-bold text-dark">
-                                                            {pay.description || (pay.paymentType === 'fine' ? 'Late Fee Settlement' : 'Library Payment')}
+                                                            {getLocalizedStr(pay.description, (pay.paymentType === 'fine' ? 'Late Fee Settlement' : 'Library Payment'))}
                                                         </div>
                                                         <small className="text-muted">Txn ID: #{pay.transactionId || pay._id.slice(-8).toUpperCase()}</small>
                                                     </td>
@@ -1254,7 +1250,7 @@ const Dashboard = () => {
                             </div>
                             <div className="d-flex justify-content-between mb-2">
                                 <span className="text-muted">Item / Description:</span>
-                                <span className="fw-bold">{latestCompletedPayment.description || 'Library Fine Payment'}</span>
+                                <span className="fw-bold">{getLocalizedStr(latestCompletedPayment.description, 'Library Fine Payment')}</span>
                             </div>
                             <div className="d-flex justify-content-between mb-2">
                                 <span className="text-muted">Payment Channel:</span>
@@ -1293,7 +1289,7 @@ const Dashboard = () => {
                 </Modal.Header>
                 <Modal.Body className="p-4">
                     <p className="text-muted">
-                        Submit a formal extension request for <strong>{getLocalizedStr(extensionModal.book?.book?.title, 'Selected Book')}</strong> to the chief librarian.
+                        Submit a formal extension request for <strong>{getLocalizedStr(extensionModal.book?.book?.title || extensionModal.book?.title, 'Selected Book')}</strong> to the chief librarian.
                     </p>
                     <div className="mb-3">
                         <label className="form-label small fw-bold">Extension Duration</label>
