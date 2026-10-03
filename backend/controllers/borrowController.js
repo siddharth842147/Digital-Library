@@ -247,7 +247,7 @@ exports.returnBook = async (req, res) => {
         const now = new Date();
         
         let accruedFine = 0;
-        if (now > borrow.dueDate) {
+        if (now > borrow.dueDate && !borrow.finePaid) {
             const fineableDays = getFineableDays(borrow.dueDate, now, holidays);
             accruedFine = fineableDays * finePerDay;
         }
@@ -422,7 +422,9 @@ exports.getMyBorrowedBooks = async (req, res) => {
             if (b.status === 'borrowed' && new Date(b.dueDate) < now) {
                 b.status = 'overdue';
             }
-            if (b.status === 'overdue' && !b.returnDate) {
+            if (b.finePaid) {
+                b.accruedFine = 0;
+            } else if (b.status === 'overdue' && !b.returnDate) {
                 const fineableDays = getFineableDays(b.dueDate, now, holidays);
                 b.accruedFine = fineableDays * finePerDay;
             } else {
@@ -467,23 +469,26 @@ exports.getBorrowHistory = async (req, res) => {
         const skip = (page - 1) * limit;
 
         const borrows = await Borrow.find(query)
-            .populate('book', 'title author coverImage isbn')
-            .populate('user', 'name email')
+            .populate('book', 'title author coverImage isbn category')
+            .populate('user', 'name email usn phone branch year')
             .populate('issuedBy', 'name')
             .populate('returnedTo', 'name')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(parseInt(limit));
 
+        // Filter out any orphaned records if user or book was removed
+        const validBorrows = borrows.filter(b => b.user && b.book);
+
         const total = await Borrow.countDocuments(query);
 
         res.status(200).json({
             success: true,
-            count: borrows.length,
+            count: validBorrows.length,
             total,
             totalPages: Math.ceil(total / limit),
             currentPage: parseInt(page),
-            data: borrows
+            data: validBorrows
         });
     } catch (error) {
         res.status(500).json({

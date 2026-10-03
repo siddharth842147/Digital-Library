@@ -260,7 +260,8 @@ const ManageBooks = () => {
                     publishedYear: info.publishedYear || prev.publishedYear,
                     pages: info.pages || prev.pages,
                     coverImage: info.coverImage || prev.coverImage,
-                    description: info.description || prev.description
+                    description: info.description || prev.description,
+                    category: info.category || prev.category
                 }));
                 toast.success('Book details auto-filled!');
             } else {

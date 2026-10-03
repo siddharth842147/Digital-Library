@@ -132,12 +132,33 @@ const BorrowManagement = () => {
                                             return (
                                                 <tr key={b._id}>
                                                     <td className="px-4 py-3">
-                                                        <div className="fw-bold">{b.user?.name || 'Unknown User'}</div>
-                                                        <small className="text-muted small">{b.user?.email || 'N/A'}</small>
+                                                        <div className="fw-bold text-dark">{b.user?.name || 'Unknown Student'}</div>
+                                                        <div className="d-flex align-items-center gap-1 flex-wrap my-1">
+                                                            {b.user?.usn && (
+                                                                <Badge bg="success-subtle" className="text-success border border-success-subtle" style={{ fontSize: '0.7rem' }}>
+                                                                    {b.user.usn}
+                                                                </Badge>
+                                                            )}
+                                                            {b.user?.branch && (
+                                                                <Badge bg="secondary-subtle" className="text-secondary border border-secondary-subtle" style={{ fontSize: '0.7rem' }}>
+                                                                    {b.user.branch}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        <small className="text-muted d-block" style={{ fontSize: '0.78rem' }}>
+                                                            {b.user?.email || 'N/A'}{b.user?.phone ? ` • 📞 ${b.user.phone}` : ''}
+                                                        </small>
                                                     </td>
                                                     <td>
-                                                        <div className="fw-bold">{getLocalizedStr(b.book?.title, 'Unknown Book')}</div>
-                                                        <small className="text-muted">Due: {new Date(b.dueDate).toLocaleDateString()}</small>
+                                                        <div className="fw-bold text-dark">{getLocalizedStr(b.book?.title, 'Unknown Book')}</div>
+                                                        {b.book?.author && (
+                                                            <small className="text-muted d-block" style={{ fontSize: '0.8rem' }}>
+                                                                By {getLocalizedStr(b.book.author, 'Unknown Author')}
+                                                            </small>
+                                                        )}
+                                                        <small className="text-secondary" style={{ fontSize: '0.75rem' }}>
+                                                            Due: {new Date(b.dueDate).toLocaleDateString()}{b.book?.isbn ? ` • ISBN: ${b.book.isbn}` : ''}
+                                                        </small>
                                                     </td>
                                                     <td>
                                                         <div className="d-flex flex-column gap-1">

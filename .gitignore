@@ -47,3 +47,5 @@ coverage/
 .vercel
 CHAT_SESSION_LOG.md
 *chat_log*
+*.pdf
+!backend/public/uploads/sample.pdf

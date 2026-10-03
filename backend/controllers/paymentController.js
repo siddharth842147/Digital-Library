@@ -225,7 +225,14 @@ exports.verifyPayment = async (req, res) => {
                 }
             } else {
                 await Borrow.updateMany(
-                    { user: payment.user, status: 'overdue' },
+                    {
+                        user: payment.user,
+                        $or: [
+                            { status: { $in: ['borrowed', 'overdue', 'return_pending'] } },
+                            { fine: { $gt: 0 } },
+                            { finePaid: false }
+                        ]
+                    },
                     { finePaid: true, fine: 0 }
                 );
             }
@@ -635,7 +642,14 @@ exports.verifyManualPayment = async (req, res) => {
                     }
                 } else {
                     await Borrow.updateMany(
-                        { user: payment.user._id, status: 'overdue' },
+                        {
+                            user: payment.user._id,
+                            $or: [
+                                { status: { $in: ['borrowed', 'overdue', 'return_pending'] } },
+                                { fine: { $gt: 0 } },
+                                { finePaid: false }
+                            ]
+                        },
                         { finePaid: true, fine: 0 }
                     );
                 }

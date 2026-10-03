@@ -119,7 +119,9 @@ exports.handleQuery = async (req, res) => {
                         if (status === 'borrowed' && new Date(borrow.dueDate) < now) {
                             status = 'overdue';
                         }
-                        if (status === 'overdue' && !borrow.returnDate) {
+                        if (borrow.finePaid) {
+                            // Fine already settled
+                        } else if (status === 'overdue' && !borrow.returnDate) {
                             const fineableDays = getFineableDays(borrow.dueDate, now, holidays);
                             currentBorrowsAccruedFine += fineableDays * finePerDay;
                         } else {

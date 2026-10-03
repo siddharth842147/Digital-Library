@@ -124,7 +124,7 @@ const Dashboard = () => {
             }
 
             const activeBorrows = borrows.filter(b => ['borrowed', 'overdue', 'return_pending'].includes(b.status));
-            const overdueList = borrows.filter(b => b.status === 'overdue' || (new Date(b.dueDate) < new Date() && !b.returnDate));
+            const overdueList = borrows.filter(b => (b.status === 'overdue' || (new Date(b.dueDate) < new Date() && !b.returnDate)) && !b.finePaid);
             const totalFinesCalculated = Math.max(0, (user?.totalFines || 0) + currentBorrowsAccruedFine);
 
             setStats({
@@ -353,7 +353,7 @@ const Dashboard = () => {
     const knowledgePtsVal = stats.coins || 0;
 
     const allUserLoans = stats.recentBooks || [];
-    const overdueBorrows = allUserLoans.filter(b => b.status === 'overdue' || (new Date(b.dueDate) < new Date() && !b.returnDate));
+    const overdueBorrows = allUserLoans.filter(b => (b.status === 'overdue' || (new Date(b.dueDate) < new Date() && !b.returnDate)) && !b.finePaid);
     const earliestDueDate = overdueBorrows.length > 0
         ? new Date(Math.min(...overdueBorrows.map(b => new Date(b.dueDate))))
         : null;
@@ -907,7 +907,11 @@ const Dashboard = () => {
                                     } else if (borrow.status === 'return_pending') {
                                         statusTag = <span className="dash-pill-tag-amber" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>RETURN VERIFICATION</span>;
                                     } else if (isOverdue) {
-                                        statusTag = <span className="dash-pill-tag-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>OVERDUE</span>;
+                                        if (borrow.finePaid) {
+                                            statusTag = <span className="dash-pill-tag-green" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>FINE SETTLED</span>;
+                                        } else {
+                                            statusTag = <span className="dash-pill-tag-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>OVERDUE</span>;
+                                        }
                                     }
 
                                     return (
@@ -923,9 +927,14 @@ const Dashboard = () => {
                                                     <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
                                                         <span className="fw-bold text-dark" style={{ fontSize: '1.05rem' }}>{bookTitle}</span>
                                                         {statusTag}
-                                                        {borrow.accruedFine > 0 && (
+                                                        {borrow.accruedFine > 0 && !borrow.finePaid && (
                                                             <span className="badge bg-danger-subtle text-danger rounded-pill px-2 py-0.5" style={{ fontSize: '0.68rem' }}>
                                                                 Fine: ₹{borrow.accruedFine}
+                                                            </span>
+                                                        )}
+                                                        {borrow.finePaid && isOverdue && (
+                                                            <span className="badge bg-success-subtle text-success rounded-pill px-2 py-0.5" style={{ fontSize: '0.68rem' }}>
+                                                                Fine Paid ✓
                                                             </span>
                                                         )}
                                                     </div>

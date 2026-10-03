@@ -166,8 +166,11 @@ const MyBooks = () => {
                                                         </div>
                                                         <div className={`d-flex align-items-center gap-2 ${borrow.status === 'overdue' ? 'text-danger fw-bold' : 'text-primary'}`}>
                                                             <FiCalendar /> <small>Due Date: {new Date(borrow.dueDate).toLocaleDateString()}</small>
-                                                            {borrow.accruedFine > 0 && (
+                                                            {borrow.accruedFine > 0 && !borrow.finePaid && (
                                                                 <Badge bg="danger" className="ms-2 badge-glow-red">₹{borrow.accruedFine} Fine</Badge>
+                                                            )}
+                                                            {borrow.finePaid && borrow.status === 'overdue' && (
+                                                                <Badge bg="success" className="ms-2">Fine Paid ✓</Badge>
                                                             )}
                                                         </div>
                                                         <div className="mt-2 small text-muted">

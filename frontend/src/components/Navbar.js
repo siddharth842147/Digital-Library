@@ -79,9 +79,6 @@ const Navbar = () => {
                                         <NavDropdown.Item as={Link} to="/admin/books">
                                             Manage Books
                                         </NavDropdown.Item>
-                                        <NavDropdown.Item as={Link} to="/admin/holidays">
-                                            Manage Holidays
-                                        </NavDropdown.Item>
                                         <NavDropdown.Item as={Link} to="/admin/resources">
                                             Manage Resources
                                         </NavDropdown.Item>
