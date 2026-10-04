@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Container, Row, Col, Card, Form, Button, Spinner, Badge } from 'react-bootstrap';
-import { FiUser, FiMail, FiPhone, FiMapPin, FiShield, FiSave, FiEdit2, FiCamera, FiHash, FiLayers, FiCalendar } from 'react-icons/fi';
+import { Container, Row, Col, Card, Form, Button, Spinner, Badge, Modal } from 'react-bootstrap';
+import { FiUser, FiMail, FiPhone, FiMapPin, FiShield, FiSave, FiEdit2, FiCamera, FiHash, FiLayers, FiCalendar, FiMaximize2, FiPrinter } from 'react-icons/fi';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -9,6 +10,7 @@ const Profile = () => {
     const [editing, setEditing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [validated, setValidated] = useState(false);
+    const [showQrModal, setShowQrModal] = useState(false);
     const fileInputRef = useRef(null);
 
     const [formData, setFormData] = useState({
@@ -139,6 +141,126 @@ const Profile = () => {
                                         {user?.membershipStatus || 'Active Member'}
                                     </Badge>
                                 </div>
+                            </Card.Body>
+                        </Card>
+
+                        {/* ================= DIGITAL PATRON PASS / STUDENT ID CARD ================= */}
+                        <Card className="border-0 shadow-sm mb-4 text-white" style={{
+                            borderRadius: 'var(--radius-xl)',
+                            overflow: 'hidden',
+                            background: 'linear-gradient(135deg, #0b132b 0%, #1c2541 55%, #3a506b 100%)',
+                            border: '1px solid rgba(255, 255, 255, 0.12)'
+                        }}>
+                            {/* Card Top Branding Strip */}
+                            <div className="d-flex justify-content-between align-items-center px-4 py-3" style={{ background: 'rgba(0, 0, 0, 0.35)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                                <div className="d-flex align-items-center gap-2">
+                                    <span style={{ fontSize: '1.25rem' }}>🏛️</span>
+                                    <div>
+                                        <div className="fw-bold tracking-wide" style={{ fontSize: '0.85rem', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                                            JVIT Central Digital Library
+                                        </div>
+                                        <div className="text-white-50" style={{ fontSize: '0.68rem' }}>
+                                            OFFICIAL STUDENT CIRCULATION PASS • ACADEMIC YEAR 2025-26
+                                        </div>
+                                    </div>
+                                </div>
+                                <Badge bg={user?.membershipStatus === 'active' ? 'success' : 'danger'} className="px-3 py-1.5 text-uppercase" style={{ fontSize: '0.72rem', letterSpacing: '0.5px' }}>
+                                    ● {user?.membershipStatus ? user.membershipStatus.toUpperCase() : 'ACTIVE PATRON'}
+                                </Badge>
+                            </div>
+
+                            {/* Card Main Body */}
+                            <Card.Body className="p-4">
+                                <Row className="align-items-center g-4">
+                                    {/* Student Credentials Column */}
+                                    <Col md={7}>
+                                        <div className="d-flex align-items-center gap-3 mb-3">
+                                            <div
+                                                className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white shadow"
+                                                style={{
+                                                    width: '56px',
+                                                    height: '56px',
+                                                    background: 'var(--gradient-primary)',
+                                                    fontSize: '1.4rem',
+                                                    border: '2px solid rgba(255, 255, 255, 0.25)',
+                                                    flexShrink: 0
+                                                }}
+                                            >
+                                                {user?.name?.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <h4 className="fw-bold mb-0 text-white">{user?.name}</h4>
+                                                <div className="text-white-50 small">{user?.email}</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-3 rounded-3 mb-3" style={{ background: 'rgba(255, 255, 255, 0.06)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                                            <Row className="g-2 text-white">
+                                                <Col sm={6}>
+                                                    <div className="text-white-50" style={{ fontSize: '0.68rem', textTransform: 'uppercase' }}>USN / REGISTER NO</div>
+                                                    <div className="fw-bold small">{user?.usn || 'Not Registered'}</div>
+                                                </Col>
+                                                <Col sm={6}>
+                                                    <div className="text-white-50" style={{ fontSize: '0.68rem', textTransform: 'uppercase' }}>BRANCH / DEPT</div>
+                                                    <div className="fw-bold small">{user?.branch || 'General Circulation'}</div>
+                                                </Col>
+                                                <Col sm={6} className="mt-2">
+                                                    <div className="text-white-50" style={{ fontSize: '0.68rem', textTransform: 'uppercase' }}>CURRENT YEAR</div>
+                                                    <div className="fw-bold small">{user?.year || 'N/A'}</div>
+                                                </Col>
+                                                <Col sm={6} className="mt-2">
+                                                    <div className="text-white-50" style={{ fontSize: '0.68rem', textTransform: 'uppercase' }}>ROLE / PRIVILEGES</div>
+                                                    <div className="fw-bold small text-info text-capitalize">{user?.role}</div>
+                                                </Col>
+                                            </Row>
+                                        </div>
+
+                                        <div className="d-flex align-items-center gap-2 flex-wrap">
+                                            <span className="text-white-50 small" style={{ fontSize: '0.75rem' }}>MEMBER ID:</span>
+                                            <code className="text-warning small px-2 py-0.5 rounded font-monospace" style={{ background: 'rgba(0,0,0,0.35)', letterSpacing: '0.5px' }}>
+                                                {user?._id?.toUpperCase()}
+                                            </code>
+                                        </div>
+                                    </Col>
+
+                                    {/* Optical QR Scanner Target Column */}
+                                    <Col md={5} className="text-center">
+                                        <div className="d-inline-block p-3 rounded-4 bg-white shadow-lg text-dark">
+                                            <QRCodeSVG
+                                                value={`LIB-PATRON:${user?._id}`}
+                                                size={140}
+                                                level="H"
+                                                includeMargin={false}
+                                            />
+                                            <div className="mt-2 fw-bold text-dark" style={{ fontSize: '0.68rem', letterSpacing: '0.5px' }}>
+                                                OPTICAL SCAN MATRIX
+                                            </div>
+                                        </div>
+                                        <div className="mt-3 d-flex justify-content-center gap-2">
+                                            <Button
+                                                variant="light"
+                                                size="sm"
+                                                className="fw-bold d-flex align-items-center gap-1.5 shadow-sm text-dark"
+                                                style={{ fontSize: '0.78rem' }}
+                                                onClick={() => setShowQrModal(true)}
+                                            >
+                                                <FiMaximize2 size={13} /> Enlarge Pass
+                                            </Button>
+                                            <Button
+                                                variant="outline-light"
+                                                size="sm"
+                                                className="d-flex align-items-center gap-1.5"
+                                                style={{ fontSize: '0.78rem' }}
+                                                onClick={() => window.print()}
+                                            >
+                                                <FiPrinter size={13} /> Print Card
+                                            </Button>
+                                        </div>
+                                        <small className="text-white-50 d-block mt-2" style={{ fontSize: '0.7rem' }}>
+                                            Scan at circulation counter for book issue & return
+                                        </small>
+                                    </Col>
+                                </Row>
                             </Card.Body>
                         </Card>
 
@@ -324,6 +446,41 @@ const Profile = () => {
                                 <FiShield className="me-1" /> Your data is secure. For sensitive changes contact the library admin.
                             </p>
                         </div>
+
+                        {/* Fullscreen High-Contrast QR Pass Modal */}
+                        <Modal show={showQrModal} onHide={() => setShowQrModal(false)} centered size="sm">
+                            <Modal.Header closeButton className="border-0 pb-0">
+                                <Modal.Title className="fw-bold small text-muted text-uppercase" style={{ letterSpacing: '1px' }}>
+                                    Digital Patron Pass
+                                </Modal.Title>
+                            </Modal.Header>
+                            <Modal.Body className="text-center p-4 pt-2">
+                                <div className="p-3 bg-white rounded-4 shadow-sm d-inline-block border mb-3">
+                                    <QRCodeSVG
+                                        value={`LIB-PATRON:${user?._id}`}
+                                        size={220}
+                                        level="H"
+                                        includeMargin={true}
+                                    />
+                                </div>
+                                <h5 className="fw-bold mb-1 text-dark">{user?.name}</h5>
+                                <div className="text-muted small mb-2">{user?.usn || user?.email}</div>
+                                <Badge bg={user?.membershipStatus === 'active' ? 'success' : 'danger'} className="px-3 py-1 mb-3">
+                                    ● {user?.membershipStatus ? user.membershipStatus.toUpperCase() : 'ACTIVE PATRON'}
+                                </Badge>
+                                <div className="p-2 rounded bg-light text-muted small font-monospace" style={{ fontSize: '0.75rem' }}>
+                                    ID: {user?._id?.toUpperCase()}
+                                </div>
+                                <p className="text-muted mt-3 mb-0" style={{ fontSize: '0.78rem' }}>
+                                    Present this screen in front of the librarian's optical camera at the circulation counter to issue or return books.
+                                </p>
+                            </Modal.Body>
+                            <Modal.Footer className="border-0 pt-0 justify-content-center">
+                                <Button variant="secondary" size="sm" onClick={() => setShowQrModal(false)}>
+                                    Close
+                                </Button>
+                            </Modal.Footer>
+                        </Modal>
                     </Col>
                 </Row>
             </Container>

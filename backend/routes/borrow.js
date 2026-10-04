@@ -7,6 +7,7 @@ const {
     getOverdueBooks,
     updateOverdueStatus,
     approveBorrow,
+    rejectBorrow,
     verifyReturn,
     getActiveBorrows,
     renewBook,
@@ -27,6 +28,7 @@ router.get('/active', protect, authorize('admin', 'librarian'), getActiveBorrows
 router.get('/overdue', protect, authorize('admin', 'librarian'), getOverdueBooks);
 router.put('/update-overdue', protect, authorize('admin'), updateOverdueStatus);
 router.put('/approve/:id', protect, authorize('admin', 'librarian'), approveBorrow);
+router.put('/reject/:id', protect, authorize('admin', 'librarian'), rejectBorrow);
 router.put('/verify-return/:id', protect, authorize('admin', 'librarian'), verifyReturn);
 
 router.put('/renew/:id', protect, renewBook);

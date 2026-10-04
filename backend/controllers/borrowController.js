@@ -225,6 +225,30 @@ exports.approveBorrow = async (req, res) => {
     }
 };
 
+// @desc    Reject a borrow request (Admin/Librarian)
+// @route   PUT /api/borrow/reject/:id
+// @access  Private (Admin/Librarian)
+exports.rejectBorrow = async (req, res) => {
+    try {
+        const { reason } = req.body;
+        const borrow = await Borrow.findById(req.params.id);
+        if (!borrow) return res.status(404).json({ success: false, message: 'Request not found' });
+        if (borrow.status !== 'pending') return res.status(400).json({ success: false, message: 'Request is not pending' });
+
+        borrow.status = 'rejected';
+        borrow.notes = reason || 'Circulation desk validation failed: patron invalid or quota limit reached.';
+        await borrow.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Borrow request has been rejected.',
+            data: borrow
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // @desc    Return a book
 // @route   POST /api/borrow/return/:id
 // @access  Private
