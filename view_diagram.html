@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Library Circulation & Borrowing Flow Diagram</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 30px;
+      background-color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .header-bar {
+      width: 100%;
+      max-width: 1280px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid #000;
+      background: #000;
+      color: #fff;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover {
+      background: #333;
+    }
+    .card {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      max-width: 1280px;
+      width: 100%;
+    }
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-bar">
+    <div>
+      <h2 style="margin: 0; font-weight: 800;">Digital Library Circulation & Borrowing Flow</h2>
+      <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">Structured Process Block Diagram • Roles, Decisions & Validation Pathways</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="CIRCULATION_PROCESS_BLOCK_DIAGRAM.svg" download="Circulation_Flow_Diagram.svg" class="btn">📥 Download SVG</a>
+      <button onclick="window.print()" class="btn" style="background: #fff; color: #000;">🖨️ Print / Save PDF</button>
+    </div>
+  </div>
+  <div class="card">
+    <object data="CIRCULATION_PROCESS_BLOCK_DIAGRAM.svg" type="image/svg+xml" width="100%"></object>
+  </div>
+</body>
+</html>
