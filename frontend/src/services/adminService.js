@@ -41,3 +41,10 @@ export const createUser = async (userData) => {
     const response = await axios.post(`${API_URL}/admin/users`, userData);
     return response.data;
 };
+
+// Clear / waive user fines
+export const clearUserFines = async (id) => {
+    const response = await axios.put(`${API_URL}/admin/users/${id}/clear-fines`);
+    return response.data;
+};
+

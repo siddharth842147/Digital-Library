@@ -3,7 +3,7 @@ import { Container, Card, Table, Badge, Button, Spinner, InputGroup, Form, Tabs,
 import { FiSearch, FiFileText, FiUserCheck, FiRotateCcw, FiCamera, FiX, FiCheckCircle, FiAlertTriangle, FiUser, FiBook, FiShield, FiXCircle } from 'react-icons/fi';
 import { Html5Qrcode } from 'html5-qrcode';
 import { getBorrowHistory, approveBorrow, rejectBorrow, verifyReturn } from '../../services/borrowService';
-import { getUser, getAllUsers } from '../../services/adminService';
+import { getUser, getAllUsers, clearUserFines } from '../../services/adminService';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { getLocalizedStr } from '../../utils/localization';
@@ -104,6 +104,19 @@ const BorrowManagement = () => {
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Verification failed');
+        }
+    };
+
+    const handleWaiveFines = async (studentId) => {
+        try {
+            const res = await clearUserFines(studentId);
+            toast.success(res.message || 'Fines waived / cleared successfully!');
+            await fetchBorrows();
+            if (verifiedPatron?.student?._id) {
+                verifyAndDisplayPatron(verifiedPatron.student._id);
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to clear fines');
         }
     };
 
@@ -564,6 +577,19 @@ const BorrowManagement = () => {
                                         <Badge bg={verifiedPatron.isFineFree ? 'success' : 'danger'} pill className="px-3 py-1.5">
                                             {verifiedPatron.isFineFree ? '✅ ₹0 CLEAR' : `❌ ₹${verifiedPatron.student.totalFines} PENDING`}
                                         </Badge>
+                                        {!verifiedPatron.isFineFree && (
+                                            <div className="mt-2">
+                                                <Button
+                                                    variant="success"
+                                                    size="sm"
+                                                    className="w-100 fw-bold shadow-sm"
+                                                    style={{ fontSize: '0.72rem' }}
+                                                    onClick={() => handleWaiveFines(verifiedPatron.student._id)}
+                                                >
+                                                    💰 Waive / Clear Fine
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
                                 </Col>
                                 <Col md={4}>

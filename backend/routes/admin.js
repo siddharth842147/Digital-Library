@@ -6,7 +6,8 @@ const {
     updateUser,
     deleteUser,
     getReports,
-    createUser
+    createUser,
+    clearUserFines
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -21,6 +22,7 @@ router.get('/users', getAllUsers);
 router.get('/users/:id', getUser);
 router.post('/users', authorize('admin', 'librarian'), createUser);
 router.put('/users/:id', authorize('admin', 'librarian'), updateUser);
+router.put('/users/:id/clear-fines', clearUserFines);
 router.delete('/users/:id', authorize('admin', 'librarian'), deleteUser);
 router.get('/reports', getReports);
 

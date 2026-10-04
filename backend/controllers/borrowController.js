@@ -331,37 +331,56 @@ exports.returnBook = async (req, res) => {
     }
 };
 
-// @desc    Verify book return (Staff Verification - Backup Plan)
+// @desc    Verify book return (Staff Verification - Finalize Return & Settle Overdue)
 // @route   PUT /api/borrow/verify-return/:id
 // @access  Private (Admin/Librarian)
 exports.verifyReturn = async (req, res) => {
     try {
         const borrow = await Borrow.findById(req.params.id).populate('book').populate('user');
-        if (!borrow || borrow.status !== 'return_pending') {
+        if (!borrow) {
+            return res.status(404).json({ success: false, message: 'Borrow record not found' });
+        }
+        if (borrow.status === 'returned') {
+            return res.status(400).json({ success: false, message: 'Book is already marked as returned' });
+        }
+        if (borrow.status !== 'return_pending' && borrow.status !== 'borrowed' && borrow.status !== 'overdue') {
             return res.status(400).json({ success: false, message: 'Invalid return verification request' });
         }
 
+        // When desk staff accepts physical return, fine is settled/waived at counter by default
+        const { settleFine = true, waiveFine = false } = req.body;
+
         // Calculate fine
         const fine = await borrow.calculateFine();
-        if (fine > 0) {
-            const user = await User.findById(borrow.user._id);
-            user.totalFines += fine;
-            await user.save();
+        const user = await User.findById(borrow.user._id);
+
+        if (settleFine || waiveFine) {
+            borrow.finePaid = true;
+            borrow.fine = 0;
+            if (fine > 0 && user.totalFines > 0) {
+                user.totalFines = Math.max(0, user.totalFines - fine);
+            }
+        } else {
+            if (fine > 0 && !borrow.finePaid) {
+                user.totalFines = (user.totalFines || 0) + fine;
+            }
         }
 
         // Finalize status
         borrow.status = 'returned';
+        borrow.returnDate = borrow.returnDate || new Date();
         borrow.returnedTo = req.user.id;
         await borrow.save();
 
         // Update book counts
         const book = await Book.findById(borrow.book._id);
-        book.availableCopies += 1;
-        await book.save();
+        if (book) {
+            book.availableCopies += 1;
+            await book.save();
+        }
 
         // Update user list
-        const user = await User.findById(borrow.user._id);
-        user.borrowedBooks = user.borrowedBooks.filter(id => id.toString() !== book._id.toString());
+        user.borrowedBooks = user.borrowedBooks.filter(id => id.toString() !== borrow.book._id.toString());
         await user.save();
 
         // Send return success email

@@ -49,8 +49,8 @@ export const rejectBorrow = async (id, reason) => {
 };
 
 // Verify return receipt (Admin/Librarian)
-export const verifyReturn = async (id) => {
-    const response = await axios.put(`${API_URL}/borrow/verify-return/${id}`);
+export const verifyReturn = async (id, data = { settleFine: true }) => {
+    const response = await axios.put(`${API_URL}/borrow/verify-return/${id}`, data);
     return response.data;
 };
 

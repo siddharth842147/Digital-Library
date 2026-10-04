@@ -433,3 +433,33 @@ exports.getReports = async (req, res) => {
         });
     }
 };
+
+// @desc    Clear / waive outstanding fines for a user (Admin/Librarian)
+// @route   PUT /api/admin/users/:id/clear-fines
+// @access  Private (Admin/Librarian)
+exports.clearUserFines = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        user.totalFines = 0;
+        await user.save();
+
+        // Also mark any borrows with unpaid fines as finePaid
+        await Borrow.updateMany(
+            { user: user._id },
+            { $set: { finePaid: true, fine: 0 } }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: `All outstanding fines cleared/waived for ${user.name}.`,
+            data: user
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+

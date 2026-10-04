@@ -125,7 +125,8 @@ const Dashboard = () => {
 
             const activeBorrows = borrows.filter(b => ['borrowed', 'overdue', 'return_pending'].includes(b.status));
             const overdueList = borrows.filter(b => (b.status === 'overdue' || (new Date(b.dueDate) < new Date() && !b.returnDate)) && !b.finePaid);
-            const totalFinesCalculated = Math.max(0, (user?.totalFines || 0) + currentBorrowsAccruedFine);
+            const latestTotalFines = profileRes?.data?.data?.totalFines !== undefined ? profileRes.data.data.totalFines : (user?.totalFines || 0);
+            const totalFinesCalculated = Math.max(0, latestTotalFines + currentBorrowsAccruedFine);
 
             setStats({
                 totalBorrowed: activeBorrows.length,
