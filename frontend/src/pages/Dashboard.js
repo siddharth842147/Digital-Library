@@ -106,11 +106,15 @@ const Dashboard = () => {
             }
 
             let profileWishlist = [];
+            let latestTotalFines = user?.totalFines || 0;
             try {
                 const profileRes = await axios.get(`${API_URL}/user/profile`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 });
-                profileWishlist = profileRes.data.data.wishlist || [];
+                profileWishlist = profileRes?.data?.data?.wishlist || [];
+                if (profileRes?.data?.data?.totalFines !== undefined) {
+                    latestTotalFines = profileRes.data.data.totalFines;
+                }
             } catch (e) {
                 console.warn('Failed to fetch profile', e);
             }
@@ -125,7 +129,6 @@ const Dashboard = () => {
 
             const activeBorrows = borrows.filter(b => ['borrowed', 'overdue', 'return_pending'].includes(b.status));
             const overdueList = borrows.filter(b => (b.status === 'overdue' || (new Date(b.dueDate) < new Date() && !b.returnDate)) && !b.finePaid);
-            const latestTotalFines = profileRes?.data?.data?.totalFines !== undefined ? profileRes.data.data.totalFines : (user?.totalFines || 0);
             const totalFinesCalculated = Math.max(0, latestTotalFines + currentBorrowsAccruedFine);
 
             setStats({

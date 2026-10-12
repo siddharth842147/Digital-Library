@@ -1,5 +1,5 @@
-const CACHE_NAME = 'library-cache-v2';
-const DYNAMIC_CACHE_NAME = 'library-dynamic-v2';
+const CACHE_NAME = 'library-cache-v3';
+const DYNAMIC_CACHE_NAME = 'library-dynamic-v3';
 
 const urlsToCache = [
   '/',
@@ -45,6 +45,15 @@ self.addEventListener('fetch', event => {
       return;
   }
 
+  // Handle SPA navigation requests - Network first with fallback to /index.html
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
   // API calls caching strategy - Network First, falling back to cache
   if (event.request.url.includes('/api/')) {
       event.respondWith(
@@ -81,6 +90,9 @@ self.addEventListener('fetch', event => {
                 return response;
             }
         );
+      })
+      .catch(error => {
+        console.warn('Fetch failed for:', event.request.url, error);
       })
   );
 });
