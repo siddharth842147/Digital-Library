@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 const ManageUsers = () => {
     const { user: loggedInUser } = useAuth();
     const [users, setUsers] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
@@ -49,6 +50,7 @@ const ManageUsers = () => {
 
     const handleOpenCreate = () => {
         setIsEdit(false);
+        setCurrentUser(null);
         setValidated(false);
         setFormData({
             name: '',
