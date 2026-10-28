@@ -10,7 +10,8 @@ const mongoSanitize = require('express-mongo-sanitize');
 const cookieParser = require('cookie-parser');
 const { doubleCsrf } = require('csrf-csrf');
 const logger = require('./utils/logger');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const Sentry = require("@sentry/node");
 const useSentry = !!process.env.SENTRY_DSN;
@@ -187,7 +188,6 @@ app.get('/api/csrf-token', (req, res) => {
 });
 
 // Serve static files
-const path = require('path');
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use('/receipts', express.static(path.join(__dirname, 'receipts')));

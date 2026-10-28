@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Container, Row, Col, Form, Button, Card, Spinner } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Form, Button, Card, Spinner, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiMail, FiLock } from 'react-icons/fi';
+import { FiMail, FiLock, FiAlertCircle, FiClock } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
@@ -11,8 +11,37 @@ const Login = () => {
         password: ''
     });
     const [loading, setLoading] = useState(false);
+    const [serverError, setServerError] = useState('');
+    const [warningMessage, setWarningMessage] = useState('');
+    const [isLocked, setIsLocked] = useState(false);
+    const [lockUntilDate, setLockUntilDate] = useState(null);
+    const [countdown, setCountdown] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
+
+    // Lockout countdown timer
+    useEffect(() => {
+        if (!lockUntilDate) return;
+
+        const updateCountdown = () => {
+            const diff = new Date(lockUntilDate).getTime() - Date.now();
+            if (diff <= 0) {
+                setIsLocked(false);
+                setLockUntilDate(null);
+                setCountdown('');
+                setServerError('');
+            } else {
+                const totalSeconds = Math.floor(diff / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                setCountdown(`${minutes}m ${seconds < 10 ? '0' : ''}${seconds}s`);
+            }
+        };
+
+        updateCountdown();
+        const interval = setInterval(updateCountdown, 1000);
+        return () => clearInterval(interval);
+    }, [lockUntilDate]);
 
     const handleChange = (e) => {
         setFormData({
@@ -23,6 +52,8 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isLocked) return;
+
         const form = e.currentTarget;
         
         if (form.checkValidity() === false) {
@@ -33,11 +64,26 @@ const Login = () => {
 
         setValidated(true);
         setLoading(true);
+        setServerError('');
+        setWarningMessage('');
 
         const result = await login(formData.email, formData.password);
 
         if (result.success) {
             navigate('/dashboard');
+        } else {
+            if (result.status === 423 || result.locked) {
+                setIsLocked(true);
+                setServerError(result.message || 'Account locked due to multiple failed attempts.');
+                if (result.lockUntil) {
+                    setLockUntilDate(result.lockUntil);
+                }
+            } else {
+                setServerError(result.message);
+                if (result.warning) {
+                    setWarningMessage(result.warning);
+                }
+            }
         }
 
         setLoading(false);
@@ -55,6 +101,40 @@ const Login = () => {
                                     Login to access your library account
                                 </p>
                             </div>
+
+                            {/* Lockout Warning Banner */}
+                            {isLocked && (
+                                <Alert variant="danger" className="d-flex align-items-center mb-3">
+                                    <FiClock className="me-2 flex-shrink-0" size={20} />
+                                    <div>
+                                        <div><strong>Account Temporarily Locked</strong></div>
+                                        <div>{serverError}</div>
+                                        {countdown && (
+                                            <div className="mt-1" style={{ fontWeight: 600 }}>
+                                                Time remaining: {countdown}
+                                            </div>
+                                        )}
+                                    </div>
+                                </Alert>
+                            )}
+
+                            {/* Standard Error Alert */}
+                            {!isLocked && serverError && (
+                                <Alert variant="danger" className="d-flex align-items-center mb-3">
+                                    <FiAlertCircle className="me-2 flex-shrink-0" size={20} />
+                                    <div>{serverError}</div>
+                                </Alert>
+                            )}
+
+                            {/* Remaining Attempts Warning */}
+                            {!isLocked && warningMessage && (
+                                <Alert variant="warning" className="d-flex align-items-center mb-3">
+                                    <FiAlertCircle className="me-2 flex-shrink-0" size={20} />
+                                    <div>
+                                        <strong>Warning:</strong> {warningMessage}
+                                    </div>
+                                </Alert>
+                            )}
 
                             <Form noValidate validated={validated} onSubmit={handleSubmit} aria-label="Login Form">
                                 <Form.Group className="mb-3">
@@ -114,7 +194,7 @@ const Login = () => {
                                 <Button
                                     type="submit"
                                     className="btn btn-primary w-100 mb-3 d-flex justify-content-center align-items-center gap-2"
-                                    disabled={loading}
+                                    disabled={loading || isLocked}
                                     aria-busy={loading}
                                 >
                                     {loading ? (
@@ -122,6 +202,8 @@ const Login = () => {
                                             <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
                                             Logging in...
                                         </>
+                                    ) : isLocked ? (
+                                        `Locked (${countdown || 'Please wait'})`
                                     ) : 'Login'}
                                 </Button>
 

@@ -10,17 +10,31 @@ const {
     updatePassword,
     verifyOtp,
     refreshToken,
-    logout
+    logout,
+    unlockUser
 } = require('../controllers/authController');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const { body } = require('express-validator');
 const { validate } = require('../middleware/validation');
 
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 
-// Rate limiting for auth routes completely disabled as requested
+// General limiter bypass for other auth routes
 const authLimiter = (req, res, next) => next();
+
+// Rate limiter for login route: max 10 requests per 15 minutes per IP
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Max 10 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+    statusCode: 429,
+    message: {
+        success: false,
+        message: 'Too many login attempts from this IP address. Please try again after 15 minutes.'
+    }
+});
 
 const registerValidation = [
     body('name').trim().notEmpty().withMessage('Name is required'),
@@ -44,7 +58,7 @@ const loginValidation = [
 // Public routes
 router.post('/register', authLimiter, registerValidation, validate, register);
 router.post('/verify-otp', authLimiter, verifyOtp);
-router.post('/login', authLimiter, loginValidation, validate, login);
+router.post('/login', loginLimiter, loginValidation, validate, login);
 router.post('/forgot-password', authLimiter, forgotPassword);
 router.post('/reset-password/:resettoken', authLimiter, resetPassword);
 router.post('/reset-password-otp', authLimiter, resetPasswordOtp);
@@ -55,5 +69,6 @@ router.post('/logout', logout);
 router.get('/me', protect, getMe);
 router.put('/update-details', protect, updateDetails);
 router.put('/update-password', protect, updatePassword);
+router.post('/unlock/:userId', protect, authorize('librarian', 'admin'), unlockUser);
 
 module.exports = router;

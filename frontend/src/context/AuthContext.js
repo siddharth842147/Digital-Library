@@ -127,11 +127,21 @@ export const AuthProvider = ({ children }) => {
             toast.success('Login successful!');
             return { success: true, user };
         } catch (error) {
+            const status = error.response?.status;
+            const data = error.response?.data;
             const message = error.message === 'Invalid response received from server'
                 ? error.message
                 : getSafeErrorMessage(error, 'Login failed. Please check your credentials.');
             toast.error(message);
-            return { success: false, message };
+            return {
+                success: false,
+                message,
+                status,
+                locked: data?.locked,
+                lockUntil: data?.lockUntil,
+                remainingMinutes: data?.remainingMinutes,
+                warning: data?.warning
+            };
         }
     };
 

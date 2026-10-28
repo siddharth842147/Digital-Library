@@ -94,6 +94,14 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    failedLoginAttempts: {
+        type: Number,
+        default: 0
+    },
+    lockUntil: {
+        type: Date,
+        default: null
+    },
     otp: {
         type: String,
         select: false
@@ -123,6 +131,11 @@ userSchema.pre('save', async function (next) {
 // Match password
 userSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Check if account is locked
+userSchema.methods.isLocked = function () {
+    return !!(this.lockUntil && this.lockUntil.getTime() > Date.now());
 };
 
 // Generate JWT token

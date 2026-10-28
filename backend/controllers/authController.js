@@ -34,6 +34,10 @@ const User = require('../models/User');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 
+// Lockout configurations from environment or default constants
+const MAX_LOGIN_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS, 10) || 5;
+const LOCK_TIME_MINUTES = parseInt(process.env.LOCK_TIME_MINUTES, 10) || 15;
+
 // @desc    Register user
 // @route   POST /api/auth/register
 // @access  Public
@@ -149,24 +153,92 @@ exports.login = async (req, res) => {
             });
         }
 
-        // Check for user
-        const user = await User.findOne({ email }).select('+password');
+        const normalizedEmail = email.toLowerCase().trim();
 
+        // Check for user
+        const user = await User.findOne({ email: normalizedEmail }).select('+password');
+
+        // Generic error message to prevent user enumeration
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid credentials'
+                message: 'Invalid email or password'
             });
         }
 
-        // Check if password matches
+        // 1. Check if the user is currently locked
+        if (user.isLocked()) {
+            const remainingMs = user.lockUntil.getTime() - Date.now();
+            const remainingMinutes = Math.max(1, Math.ceil(remainingMs / (60 * 1000)));
+
+            return res.status(423).json({
+                success: false,
+                locked: true,
+                lockUntil: user.lockUntil,
+                remainingMinutes,
+                message: `Account locked due to multiple failed attempts. Try again in ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`
+            });
+        }
+
+        // 2. If the lock has expired, reset counter and lockUntil
+        if (user.lockUntil && user.lockUntil.getTime() <= Date.now()) {
+            await User.updateOne(
+                { _id: user._id },
+                { $set: { failedLoginAttempts: 0, lockUntil: null } }
+            );
+            user.failedLoginAttempts = 0;
+            user.lockUntil = null;
+        }
+
+        // 3. Verify password
         const isMatch = await user.matchPassword(password);
 
         if (!isMatch) {
-            return res.status(401).json({
+            // Atomic update so concurrent requests cannot bypass the counter
+            const updatedUser = await User.findOneAndUpdate(
+                { _id: user._id },
+                { $inc: { failedLoginAttempts: 1 } },
+                { new: true }
+            );
+
+            // If threshold reached, lock the account and reset counter to 0
+            if (updatedUser.failedLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
+                const lockUntil = new Date(Date.now() + LOCK_TIME_MINUTES * 60 * 1000);
+                await User.updateOne(
+                    { _id: user._id },
+                    { $set: { lockUntil, failedLoginAttempts: 0 } }
+                );
+
+                return res.status(423).json({
+                    success: false,
+                    locked: true,
+                    lockUntil,
+                    remainingMinutes: LOCK_TIME_MINUTES,
+                    message: `Account locked due to multiple failed attempts. Try again in ${LOCK_TIME_MINUTES} minutes.`
+                });
+            }
+
+            const attemptsRemaining = MAX_LOGIN_ATTEMPTS - updatedUser.failedLoginAttempts;
+            const responseData = {
                 success: false,
-                message: 'Invalid credentials'
-            });
+                message: 'Invalid email or password'
+            };
+
+            // Show remaining attempts warning from attempt 3 onward
+            if (updatedUser.failedLoginAttempts >= 3) {
+                responseData.warning = `${attemptsRemaining} attempt${attemptsRemaining > 1 ? 's' : ''} left before account lockout.`;
+                responseData.attemptsRemaining = attemptsRemaining;
+            }
+
+            return res.status(401).json(responseData);
+        }
+
+        // 4. On correct password: reset failedLoginAttempts to 0 and lockUntil to null
+        if (user.failedLoginAttempts > 0 || user.lockUntil) {
+            await User.updateOne(
+                { _id: user._id },
+                { $set: { failedLoginAttempts: 0, lockUntil: null } }
+            );
         }
 
         // Check membership status
@@ -194,6 +266,47 @@ exports.login = async (req, res) => {
         res.status(500).json({
             success: false,
             message: error.message
+        });
+    }
+};
+
+// @desc    Admin / Librarian unlock user account
+// @route   POST /api/auth/unlock/:userId
+// @access  Private (Librarian/Admin)
+exports.unlockUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { $set: { failedLoginAttempts: 0, lockUntil: null } },
+            { new: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `Account for ${user.email} has been successfully unlocked.`,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                failedLoginAttempts: user.failedLoginAttempts,
+                lockUntil: user.lockUntil
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to unlock user account',
+            error: error.message
         });
     }
 };
